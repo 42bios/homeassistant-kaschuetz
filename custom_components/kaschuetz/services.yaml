@@ -1,0 +1,16 @@
+set_manual_mode:
+  description: "Wechselt die Kaschütz Steuerung in den manuellen Modus."
+  fields:
+    mode:
+      description: "Manuellen Modus aktivieren (true) oder deaktivieren (false)."
+      example: true
+
+reset_errors:
+  description: "Setzt alle Fehler der Kaschütz Steuerung zurück."
+
+set_flap_position:
+  description: "Steuert die Klappenposition der Steuerung."
+  fields:
+    position:
+      description: "Position der Klappe (offen/geschlossen)."
+      example: "offen"
