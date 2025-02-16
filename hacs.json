@@ -1,12 +1,12 @@
 {
-  "name": "Kaschütz Ofensteuerung",
+  "name": "Kaschuetz Oven Control",
+  "country": "AT",
   "domain": "kaschuetz",
-  "country": "DE",
-  "homeassistant": "2023.1.0",
+  "homeassistant": "2025.1",
   "render_readme": true,
+  "filename": "custom_components/kaschuetz/manifest.json",
   "iot_class": "Local Polling",
-  "filename": "custom_components/kaschuetz",
-  "manifest": "custom_components/kaschuetz/manifest.json",
-  "zip_release": false,
-  "hide_default_branch": false
+  "documentation": "https://github.com/42bios/homeassistant-kaschuetz",
+  "issue_tracker": "https://github.com/42bios/homeassistant-kaschuetz/issues",
+  "version": "0.1.0"
 }
