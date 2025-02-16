@@ -5,7 +5,7 @@ This is a **custom integration** for Home Assistant that enables communication w
 ## Features 🚀
 
 - Retrieve and display real-time stove data (temperature, flap position, state, etc.) 
-- *soon* Control available functions via Home Assistant 
+- *soon* -> Control available functions via Home Assistant 
 - Lovelace integration for easy monitoring 
 
 ## Installation 🛠️
