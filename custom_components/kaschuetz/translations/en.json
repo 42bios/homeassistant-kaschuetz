@@ -1,0 +1,24 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Setup Kaschuetz Oven Control",
+        "description": "Enter the IP address of your Kaschuetz Oven Control.",
+        "data": {
+          "host": "Device IP address"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to the device. Please verify the IP address.",
+      "unknown": "Unknown error. Please check the logs."
+    }
+  },
+  "sensor": {
+    "temperature": "Oven Temperature",
+    "door_status": "Door Status",
+    "flap_position": "Flap Position",
+    "burn_status": "Burn Status",
+    "error": "Error Message"
+  }
+}
