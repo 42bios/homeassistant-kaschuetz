@@ -1,39 +1,61 @@
-# Kaschütz Ofensteuerung - Home Assistant Integration
+# Home Assistant Kaschuetz Integration 🔥
 
-Diese benutzerdefinierte Integration ermöglicht die Einbindung der **Kaschütz Ofensteuerung** in Home Assistant.
+This is a **custom integration** for Home Assistant that enables communication with Kaschuetz Euromatic stoves via Wi-Fi. 
 
-## 🔧 Installation über HACS
-1. **HACS öffnen** → Gehe zu **HACS → Integrationen**.
-2. **Benutzerdefiniertes Repository hinzufügen**:
-   - Gehe zu **HACS → Drei Punkte oben rechts → Benutzerdefiniertes Repository**.
-   - Füge dein GitHub-Repository hinzu:  
-     ```
-     https://github.com/42bios/homeassistant-kaschuetz
-     ```
-   - Wähle als Kategorie **Integration** und klicke auf **Hinzufügen**.
-3. Suche nach **Kaschütz Ofensteuerung** in HACS und installiere die Integration.
-4. **Home Assistant neustarten**, damit die Integration geladen wird.
+## Features 🚀
 
-## ⚙️ Einrichtung in Home Assistant
-1. Gehe zu **Einstellungen → Geräte & Dienste → Integration hinzufügen**.
-2. Suche nach **Kaschütz Ofensteuerung** und füge sie hinzu.
-3. Trage die **IP-Adresse** der Steuerung ein und speichere die Konfiguration.
-4. Nach der Einrichtung sollten die Sensoren in Home Assistant erscheinen.
+- Retrieve and display real-time stove data (temperature, flap position, state, etc.) 
+- Control available functions via Home Assistant 
+- Lovelace integration for easy monitoring 
 
-## 📡 Verfügbare Sensoren
-| Sensorname       | Beschreibung                         |
-|-----------------|-------------------------------------|
-| `sensor.kaschuetz_temperatur` | Aktuelle Temperatur des Ofens |
-| `sensor.kaschuetz_tuerstatus` | Türstatus (offen/geschlossen) |
-| `sensor.kaschuetz_klappenposition` | Klappenstellung (offen/zu) |
-| `sensor.kaschuetz_brennstatus` | Status der Verbrennung |
-| `sensor.kaschuetz_fehlermeldung` | Fehlerstatus |
+## Installation 🛠️
 
-## 🛠 Fehlerbehebung
-Falls die Sensoren nicht erscheinen:
-- **Überprüfe die IP-Adresse** der Kaschütz-Steuerung.
-- **Neustart von Home Assistant** durchführen.
-- **HACS-Cache leeren** unter **Entwicklerwerkzeuge → YAML → Cache leeren**.
+### HACS (Recommended) 
 
-## 💡 Noch Fragen?
-Erstelle ein Issue auf [GitHub](https://github.com/42bios/homeassistant-kaschuetz/issues) oder frage in der Home Assistant Community nach! 🚀
+1. Open Home Assistant. 
+2. Navigate to **HACS** > **Integrations**.
+3. Click on **"+"** and search for "Kaschuetz".
+4. Install the integration and restart Home Assistant. 🔄
+
+Alternatively, you can manually add this repository as a custom repository in HACS:
+
+- Go to HACS > Integrations > **Custom repositories** 
+- Add `https://github.com/42bios/homeassistant-kaschuetz` as a **Integration** repository
+- Install and restart Home Assistant 
+
+### Manual Installation
+
+1. Download the latest release from [GitHub](https://github.com/42bios/homeassistant-kaschuetz/releases). 
+2. Extract and place the `custom_components/kaschuetz` folder into your Home Assistant `config/custom_components/` directory. 
+3. Restart Home Assistant. 
+
+## Configuration ⚙️
+
+1. In Home Assistant, go to **Settings** > **Devices & Services**. 
+2. Click on **Add Integration** and search for "Kaschuetz". 
+3. Enter the IP address of your Kaschuetz stove and confirm. 
+
+## Usage 🔥
+
+- Once configured, the integration will create several sensors representing the stove’s state. 
+- You can use these sensors in Lovelace dashboards, automations, and scripts. 
+
+## Sensors & Attributes 
+
+| Sensor                           | Description                          |
+| -------------------------------- | ------------------------------------ |
+| `sensor.kaschuetz_temperature`   | Current stove temperature            |
+| `sensor.kaschuetz_flap_position` | Flap position (0=open, to 7=closed)  |
+| `sensor.kaschuetz_state`         | Current operation state              |
+| `sensor.kaschuetz_com_error`     | Communication error code             |
+
+## Installation via HACS 
+
+Easiest install is via [HACS](https://hacs.xyz/):
+
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=42bios&repository=homeassistant-kaschuetz&category=integration)
+
+## Contribution 
+
+Contributions, issues, and feature requests are welcome! Feel free to [open an issue](https://github.com/42bios/homeassistant-kaschuetz/issues) or submit a pull request. 
+
