@@ -15,7 +15,7 @@ This is a **custom integration** for Home Assistant that enables communication w
 1. Open Home Assistant. 
 2. Navigate to **HACS** > **Integrations**.
 3. Click on **"+"** and search for "Kaschuetz".
-4. Install the integration and restart Home Assistant. 🔄
+4. Install the integration and restart Home Assistant. 
 
 Alternatively, you can manually add this repository as a custom repository in HACS:
 
