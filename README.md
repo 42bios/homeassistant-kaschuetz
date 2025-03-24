@@ -40,14 +40,30 @@ Alternatively, you can manually add this repository as a custom repository in HA
 - Once configured, the integration will create several sensors representing the stove’s state. 
 - You can use these sensors in Lovelace dashboards, automations, and scripts. 
 
-## Sensors & Attributes 
+## 📡 Available Sensors
 
-| Sensor                           | Description                          |
-| -------------------------------- | ------------------------------------ |
-| `sensor.kaschuetz_temperature`   | Current stove temperature            |
-| `sensor.kaschuetz_flap_position` | Flap position (0=open, to 7=closed)  |
-| `sensor.kaschuetz_state`         | Current operation state              |
-| `sensor.kaschuetz_com_error`     | Communication error code             |
+| Sensor Name                     | Description                                      |
+|---------------------------------|--------------------------------------------------|
+| `sensor.kaschuetz_temperature`  | Current oven temperature (°C)                    |
+| `sensor.kaschuetz_door_status`  | Door status (open/closed)                        |
+| `sensor.kaschuetz_flap_position`| Flap position (0 = fully open, 7 = fully closed) |
+| `sensor.kaschuetz_burn_status`  | Current operational state of the oven            |
+| `sensor.kaschuetz_error`        | Error or communication issues                    |
+
+### 🔥 Oven Status States (`burn_status`):
+
+| State | Meaning                   |
+|-------|---------------------------|
+| 1     | Standby                   |
+| 2     | Start                     |
+| 3     | Operational               |
+| 4     | Embers (Cooldown)         |
+| 5     | Waiting for Activation    |
+| 6     | Idle                      |
+| 7     | Door Open                 |
+| 8     | Searching Maximum         |
+| 9     | Optimized Burn Regulation |
+| 10    | Burn Completed            |
 
 ## Installation via HACS 
 
