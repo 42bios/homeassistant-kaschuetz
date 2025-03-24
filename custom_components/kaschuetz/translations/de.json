@@ -5,20 +5,31 @@
         "title": "Kaschütz Ofensteuerung einrichten",
         "description": "Gib die IP-Adresse deiner Kaschütz Ofensteuerung ein.",
         "data": {
-          "host": "IP-Adresse der Steuerung"
+          "host": "IP-Adresse des Geräts"
         }
       }
     },
     "error": {
-      "cannot_connect": "Verbindung zur Steuerung fehlgeschlagen. Bitte überprüfe die IP-Adresse.",
-      "unknown": "Unbekannter Fehler. Bitte prüfe die Logs."
+      "cannot_connect": "Verbindung zum Gerät fehlgeschlagen. Prüfe die IP-Adresse.",
+      "unknown": "Unbekannter Fehler. Prüfe die Logs."
     }
   },
   "sensor": {
     "temperature": "Ofentemperatur",
     "door_status": "Türstatus",
     "flap_position": "Klappenstellung",
-    "burn_status": "Brennstatus",
+    "burn_status": {
+      "state_1": "Standby",
+      "state_2": "Start",
+      "state_3": "Betrieb",
+      "state_4": "Glutphase",
+      "state_5": "Warte auf Aktiv",
+      "state_6": "Ruhezustand",
+      "state_7": "Fülltür offen",
+      "state_8": "Suche Maximum",
+      "state_9": "Abbrandregelung",
+      "state_10": "Abbrand beendet"
+    },
     "error": "Fehlermeldung"
   }
 }
