@@ -1,33 +1,30 @@
-import logging
 from homeassistant.helpers.entity import Entity
-from .kaschuetz_api import KaschuetzAPI
+import requests
+import logging
 
 _LOGGER = logging.getLogger(__name__)
 
-# Konfiguration der Integration
-def setup_platform(hass, config, add_entities, discovery_info=None):
-    host = config.get("host")
-    if not host:
-        _LOGGER.error("Keine Host-Adresse angegeben!")
-        return
-    
-    api = KaschuetzAPI(host)
-    sensors = [
-        KaschuetzSensor("Temperatur", api, "temperature", "°C"),
-        KaschuetzSensor("Türstatus", api, "door_status"),
-        KaschuetzSensor("Klappenposition", api, "flap_position"),
-        KaschuetzSensor("Brennstatus", api, "burn_status"),
-        KaschuetzSensor("Fehlermeldung", api, "error"),
-    ]
-    add_entities(sensors, True)
+STATE_MAP = {
+    1: "state_1",
+    2: "state_2",
+    3: "state_3",
+    4: "state_4",
+    5: "state_5",
+    6: "state_6",
+    7: "state_7",
+    8: "state_8",
+    9: "state_9",
+    10: "state_10"
+}
 
-class KaschuetzSensor(Entity):
-    def __init__(self, name, api, key, unit_of_measurement=None):
+
+class KaschuetzOvenSensor(Entity):
+    def __init__(self, host, name, sensor_type):
+        self._host = host
         self._name = name
-        self._api = api
-        self._key = key
+        self._sensor_type = sensor_type
         self._state = None
-        self._unit_of_measurement = unit_of_measurement
+        self._attributes = {}
 
     @property
     def name(self):
@@ -36,12 +33,53 @@ class KaschuetzSensor(Entity):
     @property
     def state(self):
         return self._state
-    
+
     @property
-    def unit_of_measurement(self):
-        return self._unit_of_measurement
+    def extra_state_attributes(self):
+        return self._attributes
 
     def update(self):
-        data = self._api.get_data()
-        if data and self._key in data:
-            self._state = data[self._key]
+        url = f"http://{self._host}/jsonRq"
+        headers = {"Content-Type": "application/json"}
+
+        try:
+            if self._sensor_type == "temperature":
+                payload = {"rqType": 1}
+                response = requests.post(url, json=payload, timeout=5)
+                response.raise_for_status()
+                json_data = response.json()
+                self._state = json_data.get("Temp", "unknown")
+
+            elif self._sensor_type == "door_status":
+                payload = {"rqType": 1}
+                response = requests.post(url, json=payload, timeout=5)
+                response.raise_for_status()
+                json_data = response.json()
+                state = json_data.get("state", None)
+                self._state = "open" if state == 7 else "closed"
+
+            elif self._sensor_type == "flap_position":
+                payload = {"rqType": 1}
+                response = requests.post(url, json=payload, timeout=5)
+                response.raise_for_status()
+                json_data = response.json()
+                self._state = json_data.get("Klappe", "unknown")
+
+            elif self._sensor_type == "burn_status":
+                payload = {"rqType": 1}
+                response = requests.post(url, json=payload, timeout=5)
+                response.raise_for_status()
+                json_data = response.json()
+                state = json_data.get("state", None)
+                self._state = STATE_MAP.get(state, "unknown")
+
+            elif self._sensor_type == "error":
+                payload = {"rqType": 4}
+                response = requests.post(url, json=payload, timeout=5)
+                response.raise_for_status()
+                json_data = response.json()
+                self._state = json_data.get("errorState", "none")
+
+        except requests.exceptions.RequestException as e:
+            _LOGGER.error(f"Error communicating with Kaschuetz Oven: {e}")
+            self._state = "unavailable"
