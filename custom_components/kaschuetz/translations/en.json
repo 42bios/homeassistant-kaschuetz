@@ -18,7 +18,18 @@
     "temperature": "Oven Temperature",
     "door_status": "Door Status",
     "flap_position": "Flap Position",
-    "burn_status": "Burn Status",
+    "burn_status": {
+      "state_1": "Standby",
+      "state_2": "Start",
+      "state_3": "Operational",
+      "state_4": "Embers",
+      "state_5": "Waiting for Activation",
+      "state_6": "Idle",
+      "state_7": "Door Open",
+      "state_8": "Searching Maximum",
+      "state_9": "Optimized Burn Regulation",
+      "state_10": "Burn Completed"
+    },
     "error": "Error Message"
   }
 }
