@@ -1,23 +1,31 @@
-"""
-Kaschütz Ofensteuerung - Home Assistant Custom Integration
-"""
+"""Initialize the Kaschuetz integration."""
 
-from homeassistant.core import HomeAssistant
+import logging
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.helpers.typing import ConfigType
+from homeassistant.core import HomeAssistant
 from .const import DOMAIN
 
-async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
-    """Setzt die Integration bei YAML-Konfiguration auf."""
-    hass.data.setdefault(DOMAIN, {})
-    return True
+_LOGGER = logging.getLogger(__name__)
+
+PLATFORMS = ["sensor"]
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Setzt die Integration bei UI-Konfiguration auf."""
+    """
+    Set up Kaschuetz from a config entry.
+    Forward the config entry to the sensor platform.
+    """
+    _LOGGER.debug("Setting up Kaschuetz entry: %s", entry.as_dict())
+
+    hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = entry.data
+
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Entfernt die Integration bei Deinstallation."""
-    hass.data[DOMAIN].pop(entry.entry_id, None)
-    return True
+    """Unload Kaschuetz config entry."""
+    _LOGGER.debug("Unloading Kaschuetz entry: %s", entry.as_dict())
+    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    if unload_ok:
+        hass.data[DOMAIN].pop(entry.entry_id, None)
+    return unload_ok

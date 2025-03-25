@@ -1,0 +1,12 @@
+{
+  "domain": "kaschuetz",
+  "name": "Kaschuetz Oven Control",
+  "version": "1.0.0",
+  "documentation": "https://github.com/42bios/homeassistant-kaschuetz",
+  "requirements": [
+    "requests"
+  ],
+  "codeowners": ["@42bios"],
+  "iot_class": "local_polling",
+  "config_flow": true
+}
