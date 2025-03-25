@@ -1,0 +1,42 @@
+{
+  "title": "Kaschuetz Ofensteuerung",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Kaschuetz Ofen einrichten",
+        "data": {
+          "host": "IP-Adresse des Ofens",
+          "season_entity": "Season-Entity (optional)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Verbindung fehlgeschlagen. Bitte IP prüfen."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Abbrandparameter anpassen",
+        "data": {
+          "aTemp": "Aktive Temperatur",
+          "schW": "Schließwert",
+          "regW": "Regelwert",
+          "regP": "Regelperiode"
+        }
+      }
+    }
+  },
+  "state": {
+    "state_1": "Standby",
+    "state_2": "Start",
+    "state_3": "Betrieb",
+    "state_4": "Glutphase",
+    "state_5": "Warte auf Aktiv",
+    "state_6": "Ruhezustand",
+    "state_7": "Fülltür offen",
+    "state_8": "Suche Maximum",
+    "state_9": "Abbrandregelung",
+    "state_10": "Abbrand beendet"
+  }
+}
