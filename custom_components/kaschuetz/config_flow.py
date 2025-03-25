@@ -8,15 +8,12 @@ from homeassistant.config_entries import ConfigFlow, ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
 
-from .const import DOMAIN, DEFAULT_NAME
+from .const import DOMAIN, DEFAULT_NAME, DEFAULT_UPDATE_INTERVAL, MIN_UPDATE_INTERVAL, MAX_UPDATE_INTERVAL
 
 _LOGGER = logging.getLogger(__name__)
 
 def _test_connection(hass: HomeAssistant, host: str) -> bool:
-    """
-    Quick request to verify the Kaschuetz device is reachable.
-    rqType=1 typically returns basic state/Temp.
-    """
+    """Quick request to verify the Kaschuetz device is reachable."""
     url = f"http://{host}/jsonRq"
     try:
         resp = requests.post(url, json={"rqType": 1}, timeout=3)
@@ -41,7 +38,7 @@ def _fetch_current_params(hass: HomeAssistant, host: str) -> dict:
         return {}
 
 class KaschuetzOptionsFlowHandler(config_entries.OptionsFlow):
-    """Handle advanced abbrand parameter options."""
+    """Handle advanced abbrand parameter options, including update interval."""
 
     def __init__(self, config_entry: ConfigEntry) -> None:
         self.config_entry = config_entry
@@ -49,7 +46,14 @@ class KaschuetzOptionsFlowHandler(config_entries.OptionsFlow):
     async def async_step_init(self, user_input=None) -> FlowResult:
         """Manage abbrand parameters in the options flow."""
         if user_input is not None:
-            # Save user changes
+            # Validate or clamp the update interval if needed
+            interval = user_input["update_interval"]
+            if interval < MIN_UPDATE_INTERVAL:
+                interval = MIN_UPDATE_INTERVAL
+            elif interval > MAX_UPDATE_INTERVAL:
+                interval = MAX_UPDATE_INTERVAL
+            user_input["update_interval"] = interval
+
             return self.async_create_entry(title="", data=user_input)
 
         current_options = dict(self.config_entry.options)
@@ -65,11 +69,14 @@ class KaschuetzOptionsFlowHandler(config_entries.OptionsFlow):
         def_regW  = current_options.get("regW",  device_params.get("regW", 600))
         def_regP  = current_options.get("regP",  device_params.get("regP", 200))
 
+        def_update_interval = current_options.get("update_interval", DEFAULT_UPDATE_INTERVAL)
+
         schema = vol.Schema({
             vol.Optional("aTemp", default=def_aTemp): vol.Coerce(int),
             vol.Optional("schW",  default=def_schW):  vol.Coerce(int),
             vol.Optional("regW",  default=def_regW):  vol.Coerce(int),
             vol.Optional("regP",  default=def_regP):  vol.Coerce(int),
+            vol.Required("update_interval", default=def_update_interval): vol.Coerce(int),
         })
 
         return self.async_show_form(step_id="init", data_schema=schema)
