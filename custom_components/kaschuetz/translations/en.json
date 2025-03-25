@@ -1,0 +1,42 @@
+{
+  "title": "Kaschuetz Oven Control",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Kaschuetz Oven Setup",
+        "data": {
+          "host": "Device IP address",
+          "season_entity": "Season entity (optional)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect. Please verify the IP."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Adjust Abbrand Parameters",
+        "data": {
+          "aTemp": "Active Temperature",
+          "schW": "Closing Value",
+          "regW": "Regulation Value",
+          "regP": "Regulation Period"
+        }
+      }
+    }
+  },
+  "state": {
+    "state_1": "Standby",
+    "state_2": "Start",
+    "state_3": "Operating",
+    "state_4": "Embers",
+    "state_5": "Waiting for Activation",
+    "state_6": "Idle",
+    "state_7": "Door Open",
+    "state_8": "Searching Maximum",
+    "state_9": "Optimized Burn",
+    "state_10": "Burn Completed"
+  }
+}
