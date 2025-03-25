@@ -1,5 +1,7 @@
 DOMAIN = "kaschuetz"
 DEFAULT_NAME = "Kaschuetz Oven"
 
-# Update interval in seconds for the DataUpdateCoordinator
-UPDATE_INTERVAL = 30
+# Standardwerte für Update-Intervall
+DEFAULT_UPDATE_INTERVAL = 30  # Sekunden
+MIN_UPDATE_INTERVAL = 5
+MAX_UPDATE_INTERVAL = 300
