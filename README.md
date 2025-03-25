@@ -83,7 +83,7 @@ If you provide a `season_entity` in the config flow (e.g. `sensor.season`), the 
 
 ---
 
-## Updating Abbrand Parameters
+## Updating Burn-off Parameters
 
 If your Kaschuetz device supports reading/writing advanced parameters (e.g. `aTemp`, `schW`, etc.), the integration attempts to:
 
