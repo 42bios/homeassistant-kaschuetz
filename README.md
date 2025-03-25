@@ -1,77 +1,100 @@
-# Home Assistant Kaschuetz Integration 🔥
+# Kaschuetz Oven Control - Home Assistant Integration
 
-This is a **custom integration** for Home Assistant that enables communication with Kaschuetz Euromatic stoves via Wi-Fi. 
+This custom integration allows you to integrate the **Kaschuetz Oven** into Home Assistant, providing convenient access to oven state, temperature, flap position, and more. It features a **UI-based config flow** for easy setup, optional **season-based** error skipping, and an **options flow** for adjusting advanced abbrand parameters.
 
-## Features 🚀
+---
 
-- Retrieve and display real-time stove data (temperature, flap position, state, etc.) 
-- *soon* -> Control available functions via Home Assistant 
-- Lovelace integration for easy monitoring 
+## Features
 
-## Installation 🛠️
+- **Config Flow** – Add the oven in the Home Assistant UI, no YAML needed.
+- **DataUpdateCoordinator** – Only a single request per update cycle (minimal overhead).
+- **Optional Season Entity** – Skip requests/avoid errors in summer (`sensor.season`).
+- **Advanced Parameters** – `aTemp`, `schW`, `regW`, `regP` can be set in an options flow.
+- **Translated** – English and German translation files included.
 
-### HACS (Recommended) 
+---
 
-1. Open Home Assistant. 
-2. Navigate to **HACS** > **Integrations**.
-3. Click on **"+"** and search for "Kaschuetz".
-4. Install the integration and restart Home Assistant. 
+## Installation
 
-Alternatively, you can manually add this repository as a custom repository in HACS:
+1. **Download/Clone** this repository and place the folder `kaschuetz` inside:
+	custom_components/kaschuetz/
 
-- Go to HACS > Integrations > **Custom repositories** 
-- Add `https://github.com/42bios/homeassistant-kaschuetz` as a **Integration** repository
-- Install and restart Home Assistant 
+2. **Restart Home Assistant** once the files are in place.
 
-### Manual Installation
+---
 
-1. Download the latest release from [GitHub](https://github.com/42bios/homeassistant-kaschuetz/releases). 
-2. Extract and place the `custom_components/kaschuetz` folder into your Home Assistant `config/custom_components/` directory. 
-3. Restart Home Assistant. 
+## Configuration
 
-## Configuration ⚙️
+1. **Add Integration**:
+- In Home Assistant, go to **Settings → Devices & Services → Integrations**.
+- Click **+ Add Integration** and search for **Kaschuetz Oven Control**.
+2. **Enter Host**:
+- Provide the IP/host of your Kaschuetz Oven (e.g. `192.168.34.157`).
+- (Optional) Provide a `season_entity` (like `sensor.season`) if you want to skip requests during summer.
+3. **Complete Setup**:
+- Click **Submit**. If the connection test succeeds, your oven is added as an integration.
 
-1. In Home Assistant, go to **Settings** > **Devices & Services**. 
-2. Click on **Add Integration** and search for "Kaschuetz". 
-3. Enter the IP address of your Kaschuetz stove and confirm. 
+### Advanced Options (Abbrand Parameters)
 
-## Usage 🔥
+- After the initial setup, click the **Configure** (gear icon) button on the Kaschuetz integration.
+- You can edit advanced parameters:
+- **aTemp** – Active Temperature
+- **schW** – Schließwert
+- **regW** – Regulation Value
+- **regP** – Regulation Period
+- These will be stored in the integration’s options. The integration may fetch the current parameters from the device (if supported) and show them as defaults.
 
-- Once configured, the integration will create several sensors representing the stove’s state. 
-- You can use these sensors in Lovelace dashboards, automations, and scripts. 
+---
 
-## 📡 Available Sensors
+## Available Sensors
 
-| Sensor Name                     | Description                                      |
-|---------------------------------|--------------------------------------------------|
-| `sensor.kaschuetz_temperature`  | Current oven temperature (°C)                    |
-| `sensor.kaschuetz_door_status`  | Door status (open/closed)                        |
-| `sensor.kaschuetz_flap_position`| Flap position (0 = fully open, 7 = fully closed) |
-| `sensor.kaschuetz_burn_status`  | Current operational state of the oven            |
-| `sensor.kaschuetz_error`        | Error or communication issues                    |
+Once configured, you’ll see up to **five sensors**:
 
-### 🔥 Oven Status States (`burn_status`):
+| Sensor Name                          | Description                                         |
+|--------------------------------------|-----------------------------------------------------|
+| `Kaschuetz Temperature`             | Current oven temperature (`Temp`) in °C             |
+| `Kaschuetz Door_status`             | Door state (open/closed) based on oven `state=7`    |
+| `Kaschuetz Flap_position`           | Flap position (`Klappe`), e.g. 0 = open, 7 = closed |
+| `Kaschuetz Burn_status`             | Numeric `state` mapped to text (e.g. 3 = Betrieb)   |
+| `Kaschuetz Error`                   | Error message from the oven (`errorState`)          |
 
-| State | Meaning                   |
-|-------|---------------------------|
-| 1     | Standby                   |
-| 2     | Start                     |
-| 3     | Operational               |
-| 4     | Embers (Cooldown)         |
-| 5     | Waiting for Activation    |
-| 6     | Idle                      |
-| 7     | Door Open                 |
-| 8     | Searching Maximum         |
-| 9     | Optimized Burn Regulation |
-| 10    | Burn Completed            |
+### Oven States
 
-## Installation via HACS 
+The oven can report these states (mapped to text in the UI):
 
-Easiest install is via [HACS](https://hacs.xyz/):
+| State | Meaning                |
+|-------|------------------------|
+| 1     | Standby               |
+| 2     | Start                 |
+| 3     | Betrieb               |
+| 4     | Glutphase             |
+| 5     | Warte auf Aktiv       |
+| 6     | Ruhezustand           |
+| 7     | Fülltür offen         |
+| 8     | Suche Maximum         |
+| 9     | Abbrandregelung       |
+| 10    | Abbrand beendet       |
 
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=42bios&repository=homeassistant-kaschuetz&category=integration)
+---
 
-## Contribution 
+## Optional: Summer Skipping
 
-Contributions, issues, and feature requests are welcome! Feel free to [open an issue](https://github.com/42bios/homeassistant-kaschuetz/issues) or submit a pull request. 
+If you provide a `season_entity` in the config flow (e.g. `sensor.season`), the integration checks if it’s `summer`. If so, it **skips** requests to avoid unnecessary errors (like if the oven is offline all summer).
 
+---
+
+## Updating Abbrand Parameters
+
+If your Kaschuetz device supports reading/writing advanced parameters (e.g. `aTemp`, `schW`, etc.), the integration attempts to:
+
+1. Fetch current values from `rqType=4` (example) during the **Options Flow**.
+2. Let you **update** them in the same flow.  
+3. **(Optionally)** send them back to the device if you extend the code with `setMenuParams`. 
+
+---
+
+## Contributing & Support
+
+Feel free to open issues or pull requests on [GitHub](https://github.com/42bios/homeassistant-kaschuetz). For additional features or bug reports, please include logs and a short description of your setup.
+
+Enjoy controlling your Kaschuetz Oven with Home Assistant! 
