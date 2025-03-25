@@ -14,7 +14,7 @@ from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
     UpdateFailed,
 )
-from .const import DOMAIN, DEFAULT_NAME, UPDATE_INTERVAL
+from .const import DOMAIN, DEFAULT_NAME, DEFAULT_UPDATE_INTERVAL
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -47,12 +47,12 @@ def _fetch_kaschuetz_data(host: str) -> dict:
 class KaschuetzDataCoordinator(DataUpdateCoordinator[dict]):
     """Coordinates fetching device data in regular intervals."""
 
-    def __init__(self, hass: HomeAssistant, host: str, season_entity: str | None) -> None:
+    def __init__(self, hass: HomeAssistant, host: str, season_entity: str | None, poll_interval: int) -> None:
         super().__init__(
             hass,
             _LOGGER,
             name="Kaschuetz Data Coordinator",
-            update_interval=timedelta(seconds=UPDATE_INTERVAL),
+            update_interval=timedelta(seconds=poll_interval),
         )
         self.host = host
         self.season_entity = season_entity
@@ -73,7 +73,11 @@ async def async_setup_entry(
     host = data["host"]
     season_entity = data.get("season_entity")
 
-    coordinator = KaschuetzDataCoordinator(hass, host, season_entity)
+    # Lese das Update-Intervall aus den Options
+    # Falls nichts drin, nimm DEFAULT_UPDATE_INTERVAL
+    poll_interval = entry.options.get("update_interval", DEFAULT_UPDATE_INTERVAL)
+
+    coordinator = KaschuetzDataCoordinator(hass, host, season_entity, poll_interval)
     await coordinator.async_config_entry_first_refresh()
 
     sensors = [
