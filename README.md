@@ -9,7 +9,7 @@ This custom integration allows you to integrate the **Kaschuetz Oven** into Home
 - **Config Flow** – Add the oven in the Home Assistant UI, no YAML needed.
 - **DataUpdateCoordinator** – Only a single request per update cycle (minimal overhead).
 - **Optional Season Entity** – Skip requests/avoid errors in summer (`sensor.season`).
-- **Advanced Parameters** – `aTemp`, `schW`, `regW`, `regP` can be set in an options flow.
+- **Advanced Parameters** – `aTemp`, `schW` (Closing Value), `regW`, `regP` can be set in an options flow.
 - **Translated** – English and German translation files included.
 
 ---
@@ -17,7 +17,7 @@ This custom integration allows you to integrate the **Kaschuetz Oven** into Home
 ## Installation
 
 1. **Download/Clone** this repository and place the folder `kaschuetz` inside:
-	custom_components/kaschuetz/
+custom_components/kaschuetz/
 
 2. **Restart Home Assistant** once the files are in place.
 
@@ -39,7 +39,7 @@ This custom integration allows you to integrate the **Kaschuetz Oven** into Home
 - After the initial setup, click the **Configure** (gear icon) button on the Kaschuetz integration.
 - You can edit advanced parameters:
 - **aTemp** – Active Temperature
-- **schW** – Schließwert
+- **schW** – Closing Value (Schließwert)
 - **regW** – Regulation Value
 - **regP** – Regulation Period
 - These will be stored in the integration’s options. The integration may fetch the current parameters from the device (if supported) and show them as defaults.
@@ -97,4 +97,4 @@ If your Kaschuetz device supports reading/writing advanced parameters (e.g. `aTe
 
 Feel free to open issues or pull requests on [GitHub](https://github.com/42bios/homeassistant-kaschuetz). For additional features or bug reports, please include logs and a short description of your setup.
 
-Enjoy controlling your Kaschuetz Oven with Home Assistant! 
+Enjoy controlling your Kaschuetz Oven with Home Assistant!
