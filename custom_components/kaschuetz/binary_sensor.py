@@ -19,12 +19,12 @@ from .coordinator import KaschuetzDataCoordinator
 BINARY_SENSOR_DESCRIPTIONS: tuple[BinarySensorEntityDescription, ...] = (
     BinarySensorEntityDescription(
         key="door_open",
-        name="Door",
+        translation_key="door_open",
         device_class=BinarySensorDeviceClass.DOOR,
     ),
     BinarySensorEntityDescription(
         key="communication_problem",
-        name="Communication Problem",
+        translation_key="communication_problem",
         device_class=BinarySensorDeviceClass.PROBLEM,
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
@@ -58,7 +58,6 @@ class KaschuetzBinarySensor(
         super().__init__(coordinator)
         self.entity_description = description
         self._attr_unique_id = f"kaschuetz_{description.key}_{coordinator.host}"
-        self._attr_name = description.name
         self._attr_has_entity_name = True
         self._attr_device_info = {
             "identifiers": {("kaschuetz", coordinator.host)},

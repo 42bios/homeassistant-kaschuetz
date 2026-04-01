@@ -21,7 +21,6 @@ class KaschuetzButtonDescription(ButtonEntityDescription):
     """Description for Kaschuetz action buttons."""
 
     key: str
-    name: str
     service: str
     service_data: dict[str, Any]
     entity_category: EntityCategory | None = None
@@ -30,28 +29,28 @@ class KaschuetzButtonDescription(ButtonEntityDescription):
 BUTTONS: tuple[KaschuetzButtonDescription, ...] = (
     KaschuetzButtonDescription(
         key="calculate_optimization",
-        name="Calculate Optimization",
+        translation_key="calculate_optimization",
         service="calculate_optimization",
         service_data={},
         entity_category=EntityCategory.CONFIG,
     ),
     KaschuetzButtonDescription(
         key="apply_optimization_safe",
-        name="Apply Optimization (Safe)",
+        translation_key="apply_optimization_safe",
         service="apply_optimization",
         service_data={"write_to_device": False, "min_confidence": "medium"},
         entity_category=EntityCategory.CONFIG,
     ),
     KaschuetzButtonDescription(
         key="apply_optimization_device",
-        name="Apply Optimization (To Device)",
+        translation_key="apply_optimization_device",
         service="apply_optimization",
         service_data={"write_to_device": True, "min_confidence": "high"},
         entity_category=EntityCategory.CONFIG,
     ),
     KaschuetzButtonDescription(
         key="reset_optimization_data",
-        name="Reset Optimization Data",
+        translation_key="reset_optimization_data",
         service="reset_optimization_data",
         service_data={},
         entity_category=EntityCategory.CONFIG,
@@ -89,7 +88,6 @@ class KaschuetzActionButton(CoordinatorEntity[KaschuetzDataCoordinator], ButtonE
         self._entry = entry
         self.entity_description = description
         self._attr_unique_id = f"kaschuetz_{description.key}_{coordinator.host}"
-        self._attr_name = description.name
         self._attr_has_entity_name = True
         self._attr_entity_category = description.entity_category
         self._attr_device_info = {

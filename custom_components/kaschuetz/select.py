@@ -43,7 +43,7 @@ class KaschuetzOptimizerModeSelect(
         self.hass = hass
         self._entry = entry
         self._attr_unique_id = f"kaschuetz_optimizer_mode_{coordinator.host}"
-        self._attr_name = "Optimizer Mode"
+        self._attr_translation_key = "optimizer_mode"
         self._attr_has_entity_name = True
         self._attr_device_info = {
             "identifiers": {("kaschuetz", coordinator.host)},

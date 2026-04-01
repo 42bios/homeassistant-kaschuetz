@@ -28,5 +28,146 @@
         }
       }
     }
+  },
+  "entity": {
+    "sensor": {
+      "temperature": {
+        "name": "Temperatur"
+      },
+      "flap_position": {
+        "name": "Klappenposition"
+      },
+      "burn_status": {
+        "name": "Abbrandstatus"
+      },
+      "com_error_code": {
+        "name": "Kommunikationsfehlercode"
+      },
+      "com_error_text": {
+        "name": "Kommunikationsfehler"
+      },
+      "connection_quality": {
+        "name": "Verbindungsqualität"
+      },
+      "consecutive_failures": {
+        "name": "Aufeinanderfolgende Fehler"
+      },
+      "last_successful_poll": {
+        "name": "Letzte erfolgreiche Abfrage"
+      },
+      "optimizer_samples": {
+        "name": "Optimierer-Samples"
+      },
+      "optimizer_cycles": {
+        "name": "Optimierer-Zyklen"
+      },
+      "optimizer_confidence": {
+        "name": "Optimierer-Vertrauen"
+      }
+    },
+    "binary_sensor": {
+      "door_open": {
+        "name": "Tür"
+      },
+      "communication_problem": {
+        "name": "Kommunikationsproblem"
+      }
+    },
+    "number": {
+      "a_temp": {
+        "name": "Aktive Temperatur"
+      },
+      "sch_w": {
+        "name": "Schließwert"
+      },
+      "reg_w": {
+        "name": "Regelwert"
+      },
+      "reg_p": {
+        "name": "Regelperiode"
+      }
+    },
+    "select": {
+      "optimizer_mode": {
+        "name": "Optimierungsmodus",
+        "state": {
+          "conservative": "Konservativ",
+          "balanced": "Ausgewogen",
+          "aggressive": "Aggressiv"
+        }
+      }
+    },
+    "button": {
+      "calculate_optimization": {
+        "name": "Optimierung berechnen"
+      },
+      "apply_optimization_safe": {
+        "name": "Optimierung anwenden (sicher)"
+      },
+      "apply_optimization_device": {
+        "name": "Optimierung anwenden (an Gerät)"
+      },
+      "reset_optimization_data": {
+        "name": "Optimierungsdaten zurücksetzen"
+      }
+    }
+  },
+  "services": {
+    "calculate_optimization": {
+      "name": "Optimierung berechnen",
+      "description": "Erstellt aus beobachteten Kaschuetz-Abbranddaten einen Vorschlag für Abbrandparameter.",
+      "fields": {
+        "entry_id": {
+          "name": "Entry-ID",
+          "description": "Optionale Config-Entry-ID, um nur für ein Kaschuetz-Gerät zu berechnen."
+        }
+      }
+    },
+    "apply_optimization": {
+      "name": "Optimierung anwenden",
+      "description": "Übernimmt vorgeschlagene Abbrandparameter in die Optionen und schreibt sie optional auf das Gerät.",
+      "fields": {
+        "entry_id": {
+          "name": "Entry-ID",
+          "description": "Optionale Config-Entry-ID, um Einstellungen nur für ein Kaschuetz-Gerät anzuwenden."
+        },
+        "write_to_device": {
+          "name": "Auf Gerät schreiben",
+          "description": "Sendet Werte vor dem Speichern per rqType=8 an den Ofen."
+        },
+        "min_confidence": {
+          "name": "Mindestvertrauen",
+          "description": "Wendet Optimierung nur an, wenn das Vertrauen mindestens diesem Wert entspricht."
+        }
+      }
+    },
+    "optimize_and_apply": {
+      "name": "Optimieren und anwenden",
+      "description": "Abkürzung für apply_optimization mit Vertrauensprüfung.",
+      "fields": {
+        "entry_id": {
+          "name": "Entry-ID",
+          "description": "Optionale Config-Entry-ID, um Einstellungen nur für ein Kaschuetz-Gerät anzuwenden."
+        },
+        "write_to_device": {
+          "name": "Auf Gerät schreiben",
+          "description": "Sendet Werte vor dem Speichern per rqType=8 an den Ofen."
+        },
+        "min_confidence": {
+          "name": "Mindestvertrauen",
+          "description": "Wendet Optimierung nur an, wenn das Vertrauen mindestens diesem Wert entspricht."
+        }
+      }
+    },
+    "reset_optimization_data": {
+      "name": "Optimierungsdaten zurücksetzen",
+      "description": "Löscht beobachtete Abbranddaten, die vom Optimierer verwendet werden.",
+      "fields": {
+        "entry_id": {
+          "name": "Entry-ID",
+          "description": "Optionale Config-Entry-ID, um Daten nur für ein Kaschuetz-Gerät zurückzusetzen."
+        }
+      }
+    }
   }
 }

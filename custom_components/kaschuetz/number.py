@@ -32,7 +32,6 @@ class KaschuetzNumberDescription(NumberEntityDescription):
     """Metadata for a writable Kaschuetz number entity."""
 
     key: str
-    name: str
     default_value: int
     native_min_value: int
     native_max_value: int
@@ -42,7 +41,7 @@ class KaschuetzNumberDescription(NumberEntityDescription):
 NUMBER_DESCRIPTIONS: tuple[KaschuetzNumberDescription, ...] = (
     KaschuetzNumberDescription(
         key="aTemp",
-        name="Active Temperature",
+        translation_key="a_temp",
         default_value=DEFAULT_A_TEMP,
         native_min_value=120,
         native_max_value=320,
@@ -50,7 +49,7 @@ NUMBER_DESCRIPTIONS: tuple[KaschuetzNumberDescription, ...] = (
     ),
     KaschuetzNumberDescription(
         key="schW",
-        name="Closing Value",
+        translation_key="sch_w",
         default_value=DEFAULT_SCHW,
         native_min_value=120,
         native_max_value=700,
@@ -58,7 +57,7 @@ NUMBER_DESCRIPTIONS: tuple[KaschuetzNumberDescription, ...] = (
     ),
     KaschuetzNumberDescription(
         key="regW",
-        name="Regulation Value",
+        translation_key="reg_w",
         default_value=DEFAULT_REGW,
         native_min_value=200,
         native_max_value=1200,
@@ -66,7 +65,7 @@ NUMBER_DESCRIPTIONS: tuple[KaschuetzNumberDescription, ...] = (
     ),
     KaschuetzNumberDescription(
         key="regP",
-        name="Regulation Period",
+        translation_key="reg_p",
         default_value=DEFAULT_REGP,
         native_min_value=120,
         native_max_value=600,
@@ -104,7 +103,6 @@ class KaschuetzNumberEntity(CoordinatorEntity[KaschuetzDataCoordinator], NumberE
         self._entry = entry
         self.entity_description = description
         self._attr_unique_id = f"kaschuetz_{description.key}_{coordinator.host}"
-        self._attr_name = description.name
         self._attr_has_entity_name = True
         self._attr_native_min_value = description.native_min_value
         self._attr_native_max_value = description.native_max_value

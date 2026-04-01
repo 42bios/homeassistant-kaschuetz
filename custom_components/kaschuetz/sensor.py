@@ -15,52 +15,52 @@ from .coordinator import KaschuetzDataCoordinator, map_com_error_to_text, map_st
 SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
     SensorEntityDescription(
         key="temperature",
-        name="Temperature",
+        translation_key="temperature",
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         device_class=SensorDeviceClass.TEMPERATURE,
     ),
-    SensorEntityDescription(key="flap_position", name="Flap Position"),
-    SensorEntityDescription(key="burn_status", name="Burn Status"),
+    SensorEntityDescription(key="flap_position", translation_key="flap_position"),
+    SensorEntityDescription(key="burn_status", translation_key="burn_status"),
     SensorEntityDescription(
         key="com_error_code",
-        name="Communication Error Code",
+        translation_key="com_error_code",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     SensorEntityDescription(
         key="com_error_text",
-        name="Communication Error",
+        translation_key="com_error_text",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     SensorEntityDescription(
         key="connection_quality",
-        name="Connection Quality",
+        translation_key="connection_quality",
         native_unit_of_measurement=PERCENTAGE,
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     SensorEntityDescription(
         key="consecutive_failures",
-        name="Consecutive Failures",
+        translation_key="consecutive_failures",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     SensorEntityDescription(
         key="last_successful_poll",
-        name="Last Successful Poll",
+        translation_key="last_successful_poll",
         device_class=SensorDeviceClass.TIMESTAMP,
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     SensorEntityDescription(
         key="optimizer_samples",
-        name="Optimizer Samples",
+        translation_key="optimizer_samples",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     SensorEntityDescription(
         key="optimizer_cycles",
-        name="Optimizer Cycles",
+        translation_key="optimizer_cycles",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     SensorEntityDescription(
         key="optimizer_confidence",
-        name="Optimizer Confidence",
+        translation_key="optimizer_confidence",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
 )
@@ -92,7 +92,6 @@ class KaschuetzSensor(CoordinatorEntity[KaschuetzDataCoordinator], SensorEntity)
         self._entry = entry
         self.entity_description = description
         self._attr_unique_id = f"kaschuetz_{description.key}_{coordinator.host}"
-        self._attr_name = description.name
         self._attr_has_entity_name = True
         self._attr_device_info = {
             "identifiers": {("kaschuetz", coordinator.host)},
