@@ -1,16 +1,31 @@
 ﻿# Kaschuetz Oven Control
 
-Home Assistant custom integration for a Kaschuetz oven controller with adaptive burn optimization.
+[![CI](https://github.com/42bios/homeassistant-kaschuetz/actions/workflows/ci.yml/badge.svg)](https://github.com/42bios/homeassistant-kaschuetz/actions/workflows/ci.yml)
+[![HACS Custom](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://hacs.xyz/)
+[![Version](https://img.shields.io/github/v/release/42bios/homeassistant-kaschuetz)](https://github.com/42bios/homeassistant-kaschuetz/releases)
 
-## Features
-- UI config flow (no YAML)
-- Polling via `rqType=1` with health metrics
-- Optional `season_entity` support (skip polling when state is `summer`)
-- Writable burn parameters (`aTemp`, `schW`, `regW`, `regP`) via UI entities
-- Optimizer with cycle detection, confidence scoring, and persistence
-- Diagnostics endpoint for support-friendly debugging
+Home Assistant custom integration for Kaschuetz oven controllers with adaptive burn optimization.
 
-## Installation
+![Kaschuetz HACS Preview](.github/images/hacs_preview.png)
+
+## Highlights
+- UI config flow (`Settings -> Devices & Services`)
+- Local polling (`rqType=1`) with connection quality metrics
+- Optional season lock (`season_entity = summer` skips polling)
+- Writable burn parameters (`aTemp`, `schW`, `regW`, `regP`)
+- Optimizer with cycle detection, confidence scoring, persistence
+- Diagnostics endpoint for faster issue analysis
+
+## HACS Installation (Recommended)
+1. Open HACS in Home Assistant.
+2. Go to `Integrations`.
+3. Open menu (three dots) -> `Custom repositories`.
+4. Repository URL: `https://github.com/42bios/homeassistant-kaschuetz`
+5. Category: `Integration`
+6. Install `Kaschuetz Oven Control` and restart Home Assistant.
+7. Add integration in `Settings -> Devices & Services -> Add Integration`.
+
+## Manual Installation
 1. Copy `custom_components/kaschuetz` into your Home Assistant config folder.
 2. Restart Home Assistant.
 3. Add integration in `Settings -> Devices & Services -> Add Integration`.
@@ -31,6 +46,8 @@ Optional:
 - Communication Error Text (mapped)
 - Connection Quality (%)
 - Consecutive Failures
+- Last Successful Poll
+- Optimizer Samples / Cycles / Confidence
 
 ### Binary Sensor
 - Door (on when `state == 7`)
@@ -53,23 +70,21 @@ Optional:
 
 ## Services
 - `kaschuetz.calculate_optimization`
-- `kaschuetz.apply_optimization`
-  - supports `write_to_device` and `min_confidence`
-- `kaschuetz.optimize_and_apply`
-  - shortcut to apply optimization with confidence gating
+- `kaschuetz.apply_optimization` (`write_to_device`, `min_confidence`)
+- `kaschuetz.optimize_and_apply` (shortcut with confidence gate)
 - `kaschuetz.reset_optimization_data`
 
-Service UI hint (Home Assistant 2026):
-- Open `Developer Tools -> Actions` (not the old Services tab)
+Home Assistant 2026 note:
+- Use `Developer Tools -> Actions` (instead of the old Services tab)
 - Search for `kaschuetz.*`
 
-## Optimization model
+## Optimization Model
 - Learns from observed burn samples during normal polling
-- Detects coarse burn cycles using active-state transitions
-- Uses cycle stability + error ratio to calculate confidence
-- Stores training data persistently across Home Assistant restarts
+- Detects coarse burn cycles via active/inactive transitions
+- Uses cycle stability + error ratio to derive confidence
+- Persists learned history across Home Assistant restarts
 
-## State mapping
+## State Mapping
 - `1` Standby
 - `2` Start
 - `3` Betrieb
@@ -82,16 +97,12 @@ Service UI hint (Home Assistant 2026):
 - `10` Abbrand beendet
 
 ## Development
-Local quality checks:
 ```powershell
 python -m compileall custom_components\kaschuetz
 ruff check .
 pytest -q
 ```
 
-CI:
-- GitHub Actions workflow at `.github/workflows/ci.yml`
-
 ## Support
 - Issues: https://github.com/42bios/homeassistant-kaschuetz/issues
-- Repo: https://github.com/42bios/homeassistant-kaschuetz
+- Releases: https://github.com/42bios/homeassistant-kaschuetz/releases
