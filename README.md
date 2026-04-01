@@ -103,6 +103,11 @@ ruff check .
 pytest -q
 ```
 
+## Releases
+- Create and push a semantic tag, for example `v1.3.1`.
+- The `Release` workflow will automatically publish a GitHub Release.
+- Release notes are auto-generated and grouped via `.github/release.yml`.
+
 ## Support
 - Issues: https://github.com/42bios/homeassistant-kaschuetz/issues
 - Releases: https://github.com/42bios/homeassistant-kaschuetz/releases
