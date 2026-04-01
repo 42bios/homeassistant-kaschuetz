@@ -38,13 +38,39 @@
         "name": "Flap Position"
       },
       "burn_status": {
-        "name": "Burn Status"
+        "name": "Burn Status",
+        "state": {
+          "standby": "Standby",
+          "start": "Start",
+          "operation": "Operation",
+          "embers_phase": "Embers phase",
+          "waiting_for_activation": "Waiting for activation",
+          "idle": "Idle",
+          "filling_door_open": "Filling door open",
+          "searching_maximum": "Searching maximum",
+          "burn_control": "Burn control",
+          "burn_finished": "Burn finished",
+          "unknown": "Unknown"
+        }
       },
       "com_error_code": {
         "name": "Communication Error Code"
       },
       "com_error_text": {
-        "name": "Communication Error"
+        "name": "Communication Error",
+        "state": {
+          "ok": "OK",
+          "minor_communication_issue": "Minor communication issue",
+          "communication_retry": "Communication retry",
+          "device_not_ready": "Device not ready",
+          "sensor_problem": "Sensor problem",
+          "actuator_problem": "Actuator problem",
+          "thermal_guard": "Thermal guard",
+          "controller_fault": "Controller fault",
+          "configuration_problem": "Configuration problem",
+          "communication_lost": "Communication lost",
+          "unknown": "Unknown"
+        }
       },
       "connection_quality": {
         "name": "Connection Quality"

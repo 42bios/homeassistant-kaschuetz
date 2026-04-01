@@ -17,16 +17,16 @@ from .optimizer import BurnOptimizer
 _LOGGER = logging.getLogger(__name__)
 
 STATE_LABELS: dict[int, str] = {
-    1: "Standby",
-    2: "Start",
-    3: "Betrieb",
-    4: "Glutphase",
-    5: "Warte auf Aktiv",
-    6: "Ruhezustand",
-    7: "Fuelltuere offen",
-    8: "Suche Maximum",
-    9: "Abbrandregelung",
-    10: "Abbrand beendet",
+    1: "standby",
+    2: "start",
+    3: "operation",
+    4: "embers_phase",
+    5: "waiting_for_activation",
+    6: "idle",
+    7: "filling_door_open",
+    8: "searching_maximum",
+    9: "burn_control",
+    10: "burn_finished",
 }
 
 COM_ERROR_LABELS: dict[int, str] = {
@@ -52,7 +52,7 @@ def map_com_error_to_text(com_error: int | None) -> str:
     """Map communication error code into readable text."""
     if com_error is None:
         return "unknown"
-    return COM_ERROR_LABELS.get(com_error, f"unknown_{com_error}")
+    return COM_ERROR_LABELS.get(com_error, "unknown")
 
 
 class KaschuetzDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):

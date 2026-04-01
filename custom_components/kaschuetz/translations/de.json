@@ -38,13 +38,39 @@
         "name": "Klappenposition"
       },
       "burn_status": {
-        "name": "Abbrandstatus"
+        "name": "Abbrandstatus",
+        "state": {
+          "standby": "Standby",
+          "start": "Start",
+          "operation": "Betrieb",
+          "embers_phase": "Glutphase",
+          "waiting_for_activation": "Warte auf Aktiv",
+          "idle": "Ruhezustand",
+          "filling_door_open": "Fülltüre offen",
+          "searching_maximum": "Suche Maximum",
+          "burn_control": "Abbrandregelung",
+          "burn_finished": "Abbrand beendet",
+          "unknown": "Unbekannt"
+        }
       },
       "com_error_code": {
         "name": "Kommunikationsfehlercode"
       },
       "com_error_text": {
-        "name": "Kommunikationsfehler"
+        "name": "Kommunikationsfehler",
+        "state": {
+          "ok": "OK",
+          "minor_communication_issue": "Kleines Kommunikationsproblem",
+          "communication_retry": "Kommunikation wird wiederholt",
+          "device_not_ready": "Gerät nicht bereit",
+          "sensor_problem": "Sensorproblem",
+          "actuator_problem": "Aktuatorproblem",
+          "thermal_guard": "Thermischer Schutz aktiv",
+          "controller_fault": "Controller-Fehler",
+          "configuration_problem": "Konfigurationsproblem",
+          "communication_lost": "Kommunikation verloren",
+          "unknown": "Unbekannt"
+        }
       },
       "connection_quality": {
         "name": "Verbindungsqualität"
