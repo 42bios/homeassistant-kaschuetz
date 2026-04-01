@@ -31,6 +31,7 @@ from .const import (
     RUNTIME_SAVE_OPTIMIZER,
     SERVICE_APPLY_OPTIMIZATION,
     SERVICE_CALCULATE_OPTIMIZATION,
+    SERVICE_EXPORT_BURN_HISTORY,
     SERVICE_OPTIMIZE_AND_APPLY,
     SERVICE_PREVIEW_ONLY,
     SERVICE_RESET_OPTIMIZATION,
@@ -51,6 +52,13 @@ APPLY_SCHEMA = vol.Schema(
         vol.Optional("min_confidence", default=CONFIDENCE_LOW): vol.In(
             [CONFIDENCE_LOW, CONFIDENCE_MEDIUM, CONFIDENCE_HIGH]
         ),
+    }
+)
+EXPORT_HISTORY_SCHEMA = vol.Schema(
+    {
+        vol.Optional("entry_id"): cv.string,
+        vol.Optional("include_arrays", default=True): cv.boolean,
+        vol.Optional("max_points", default=240): vol.All(vol.Coerce(int), vol.Range(min=20, max=1000)),
     }
 )
 
@@ -80,22 +88,6 @@ def _find_entries(hass: HomeAssistant, entry_id: str | None) -> list[ConfigEntry
     if not entry_id:
         return entries
     return [entry for entry in entries if entry.entry_id == entry_id]
-
-
-def _suggestion_to_text(entry_id: str, suggestion: dict[str, Any]) -> str:
-    return (
-        f"Entry: {entry_id}\n"
-        f"Samples: {suggestion.get('samples_used')}\n"
-        f"Burn cycles: {suggestion.get('cycles_used')}\n"
-        f"Confidence: {suggestion.get('confidence')}\n"
-        f"aTemp={suggestion.get('aTemp')}, "
-        f"schW={suggestion.get('schW')}, "
-        f"regW={suggestion.get('regW')}, "
-        f"regP={suggestion.get('regP')}\n"
-        f"Stats: {suggestion.get('stats')}\n"
-        f"Cycle stats: {suggestion.get('cycle_stats')}\n"
-        f"Note: {suggestion.get('note', '-')}"
-    )
 
 
 def _safe_int(value: Any, fallback: int) -> int:
@@ -130,6 +122,8 @@ def _suggestion_preview_text(entry: ConfigEntry, suggestion: dict[str, Any]) -> 
         f"Delta: {delta}\n"
         f"Stats: {suggestion.get('stats')}\n"
         f"Cycle stats: {suggestion.get('cycle_stats')}\n"
+        f"KPIs: {suggestion.get('kpis')}\n"
+        f"Adjustments: {suggestion.get('adjustments')}\n"
         f"Note: {suggestion.get('note', '-')}"
     )
 
@@ -247,6 +241,40 @@ async def _async_setup_services(hass: HomeAssistant) -> None:
             notification_id="kaschuetz_apply_optimization",
         )
 
+    async def _handle_export_burn_history(call: ServiceCall) -> None:
+        requested_entry_id = call.data.get("entry_id")
+        include_arrays = bool(call.data.get("include_arrays", True))
+        max_points = int(call.data.get("max_points", 240))
+        summaries: list[str] = []
+
+        for entry in _find_entries(hass, requested_entry_id):
+            runtime = hass.data[DOMAIN].get(entry.entry_id)
+            if not runtime:
+                continue
+
+            optimizer: BurnOptimizer = runtime[RUNTIME_OPTIMIZER]
+            snapshot = optimizer.history_snapshot(max_points=max_points, include_arrays=include_arrays)
+            hass.bus.async_fire(
+                f"{DOMAIN}_burn_history_export",
+                {"entry_id": entry.entry_id, **snapshot},
+            )
+            summaries.append(
+                f"Entry {entry.entry_id}: exported points={snapshot.get('points')} "
+                f"time_s={snapshot.get('time_s')} kpis={snapshot.get('kpis')}"
+            )
+
+        if not summaries:
+            summaries.append("No matching Kaschuetz config entry found.")
+
+        message = "\n".join(summaries)
+        _LOGGER.info("Kaschuetz burn history export result:\n%s", message)
+        persistent_notification.async_create(
+            hass,
+            message,
+            title="Kaschuetz Burn History Export",
+            notification_id="kaschuetz_export_burn_history",
+        )
+
     async def _handle_optimize_and_apply(call: ServiceCall) -> None:
         await _handle_apply_optimization(call)
 
@@ -296,6 +324,13 @@ async def _async_setup_services(hass: HomeAssistant) -> None:
         SERVICE_APPLY_OPTIMIZATION,
         _handle_apply_optimization,
         schema=APPLY_SCHEMA,
+    )
+    async_register_admin_service(
+        hass,
+        DOMAIN,
+        SERVICE_EXPORT_BURN_HISTORY,
+        _handle_export_burn_history,
+        schema=EXPORT_HISTORY_SCHEMA,
     )
     async_register_admin_service(
         hass,
@@ -363,6 +398,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             hass.services.async_remove(DOMAIN, SERVICE_CALCULATE_OPTIMIZATION)
             hass.services.async_remove(DOMAIN, SERVICE_PREVIEW_ONLY)
             hass.services.async_remove(DOMAIN, SERVICE_APPLY_OPTIMIZATION)
+            hass.services.async_remove(DOMAIN, SERVICE_EXPORT_BURN_HISTORY)
             hass.services.async_remove(DOMAIN, SERVICE_OPTIMIZE_AND_APPLY)
             hass.services.async_remove(DOMAIN, SERVICE_RESET_OPTIMIZATION)
             hass.data[DOMAIN]["service_registered"] = False

@@ -14,6 +14,7 @@ from .coordinator import (
     KaschuetzDataCoordinator,
     map_com_error_to_text,
     map_error_state_to_text,
+    map_spr_to_text,
     map_state_to_text,
 )
 
@@ -39,6 +40,11 @@ SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
     SensorEntityDescription(
         key="spr_code",
         translation_key="spr_code",
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    SensorEntityDescription(
+        key="spr_text",
+        translation_key="spr_text",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     SensorEntityDescription(
@@ -104,6 +110,38 @@ SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         translation_key="device_reg_p",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
+    SensorEntityDescription(
+        key="burn_history_time_s",
+        translation_key="burn_history_time_s",
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    SensorEntityDescription(
+        key="kpi_time_to_peak",
+        translation_key="kpi_time_to_peak",
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    SensorEntityDescription(
+        key="kpi_peak_temp",
+        translation_key="kpi_peak_temp",
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    SensorEntityDescription(
+        key="kpi_overshoot",
+        translation_key="kpi_overshoot",
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    SensorEntityDescription(
+        key="kpi_cooldown_rate",
+        translation_key="kpi_cooldown_rate",
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    SensorEntityDescription(
+        key="kpi_flap_oscillation",
+        translation_key="kpi_flap_oscillation",
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
 )
 
 
@@ -161,6 +199,9 @@ class KaschuetzSensor(CoordinatorEntity[KaschuetzDataCoordinator], SensorEntity)
             return map_com_error_to_text(com_error if isinstance(com_error, int) else None)
         if key == "spr_code":
             return data.get("spr")
+        if key == "spr_text":
+            spr_code = data.get("spr")
+            return map_spr_to_text(spr_code if isinstance(spr_code, int) else None)
         if key == "error_state_code":
             return data.get("errorState")
         if key == "error_state_text":
@@ -188,6 +229,21 @@ class KaschuetzSensor(CoordinatorEntity[KaschuetzDataCoordinator], SensorEntity)
             return data.get("regW")
         if key == "device_reg_p":
             return data.get("regP")
+        if key == "burn_history_time_s":
+            snapshot = self.coordinator.optimizer.history_snapshot(
+                max_points=240, include_arrays=False
+            )
+            return snapshot.get("time_s")
+        if key == "kpi_time_to_peak":
+            return self.coordinator.optimizer.latest_history_kpis().get("time_to_peak_s")
+        if key == "kpi_peak_temp":
+            return self.coordinator.optimizer.latest_history_kpis().get("peak_temp")
+        if key == "kpi_overshoot":
+            return self.coordinator.optimizer.latest_history_kpis().get("overshoot")
+        if key == "kpi_cooldown_rate":
+            return self.coordinator.optimizer.latest_history_kpis().get("cooldown_rate_c_per_min")
+        if key == "kpi_flap_oscillation":
+            return self.coordinator.optimizer.latest_history_kpis().get("flap_oscillation")
         return None
 
     @property
@@ -201,6 +257,10 @@ class KaschuetzSensor(CoordinatorEntity[KaschuetzDataCoordinator], SensorEntity)
                 "cycles_used": suggestion.get("cycles_used"),
                 "stats": suggestion.get("stats"),
                 "cycle_stats": suggestion.get("cycle_stats"),
+                "kpis": suggestion.get("kpis"),
+                "adjustments": suggestion.get("adjustments"),
                 "optimizer_mode": suggestion.get("optimizer_mode"),
             }
+        if key == "burn_history_time_s":
+            return self.coordinator.optimizer.history_snapshot(max_points=240, include_arrays=True)
         return None

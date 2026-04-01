@@ -22,6 +22,36 @@ preview_only:
       selector:
         text:
 
+export_burn_history:
+  name: Export Burn History
+  description: Export TempArr/KlappeArr/Time_s plus derived KPIs for diagnostics and automation.
+  fields:
+    entry_id:
+      name: Entry ID
+      description: Optional config entry id to export history for only one Kaschuetz device.
+      required: false
+      example: "abcd1234efgh5678"
+      selector:
+        text:
+    include_arrays:
+      name: Include arrays
+      description: Include TempArr and KlappeArr arrays in export payload.
+      required: false
+      default: true
+      selector:
+        boolean:
+    max_points:
+      name: Max points
+      description: Maximum history points to include from the tail of arrays.
+      required: false
+      default: 240
+      selector:
+        number:
+          min: 20
+          max: 1000
+          step: 10
+          mode: box
+
 apply_optimization:
   name: Apply Optimization
   description: Apply suggested burn parameters to integration options and optionally write them to the device. Works only when experimental auto optimization is enabled in integration options.

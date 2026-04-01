@@ -76,6 +76,22 @@
       "spr_code": {
         "name": "Controller Mode Code (spr)"
       },
+      "spr_text": {
+        "name": "Controller Mode",
+        "state": {
+          "spr_code_0": "SPR Code 0",
+          "spr_code_1": "SPR Code 1",
+          "spr_code_2": "SPR Code 2",
+          "spr_code_3": "SPR Code 3",
+          "spr_code_4": "SPR Code 4",
+          "spr_code_5": "SPR Code 5",
+          "spr_code_6": "SPR Code 6",
+          "spr_code_7": "SPR Code 7",
+          "spr_code_8": "SPR Code 8",
+          "spr_code_9": "SPR Code 9",
+          "unknown": "Unknown"
+        }
+      },
       "error_state_code": {
         "name": "Oven Error State Code"
       },
@@ -92,6 +108,17 @@
           "error_code_7": "Error code 7",
           "error_code_8": "Error code 8",
           "error_code_9": "Error code 9",
+          "error_code_10": "Error code 10",
+          "error_code_11": "Error code 11",
+          "error_code_12": "Error code 12",
+          "error_code_13": "Error code 13",
+          "error_code_14": "Error code 14",
+          "error_code_15": "Error code 15",
+          "error_code_16": "Error code 16",
+          "error_code_17": "Error code 17",
+          "error_code_18": "Error code 18",
+          "error_code_19": "Error code 19",
+          "error_code_20": "Error code 20",
           "unknown": "Unknown"
         }
       },
@@ -124,6 +151,24 @@
       },
       "device_reg_p": {
         "name": "Device Regulation Period"
+      },
+      "burn_history_time_s": {
+        "name": "Burn History Time (s)"
+      },
+      "kpi_time_to_peak": {
+        "name": "KPI Time To Peak (s)"
+      },
+      "kpi_peak_temp": {
+        "name": "KPI Peak Temperature"
+      },
+      "kpi_overshoot": {
+        "name": "KPI Overshoot"
+      },
+      "kpi_cooldown_rate": {
+        "name": "KPI Cooldown Rate (C/min)"
+      },
+      "kpi_flap_oscillation": {
+        "name": "KPI Flap Oscillation"
       }
     },
     "binary_sensor": {
@@ -191,6 +236,24 @@
         "entry_id": {
           "name": "Entry ID",
           "description": "Optional config entry ID to preview one Kaschuetz device only."
+        }
+      }
+    },
+    "export_burn_history": {
+      "name": "Export Burn History",
+      "description": "Export TempArr/KlappeArr/Time_s plus derived KPIs for diagnostics and automation.",
+      "fields": {
+        "entry_id": {
+          "name": "Entry ID",
+          "description": "Optional config entry ID to export one Kaschuetz device only."
+        },
+        "include_arrays": {
+          "name": "Include arrays",
+          "description": "Include TempArr and KlappeArr arrays in export payload."
+        },
+        "max_points": {
+          "name": "Max points",
+          "description": "Maximum history points to include from the tail of arrays."
         }
       }
     },

@@ -55,6 +55,19 @@ ERROR_STATE_LABELS: dict[int, str] = {
     9: "error_code_9",
 }
 
+SPR_LABELS: dict[int, str] = {
+    0: "spr_code_0",
+    1: "spr_code_1",
+    2: "spr_code_2",
+    3: "spr_code_3",
+    4: "spr_code_4",
+    5: "spr_code_5",
+    6: "spr_code_6",
+    7: "spr_code_7",
+    8: "spr_code_8",
+    9: "spr_code_9",
+}
+
 
 def map_state_to_text(state: int | None) -> str:
     """Map integer state into readable text."""
@@ -72,7 +85,22 @@ def map_error_state_to_text(error_state: int | None) -> str:
     """Map oven error state code into readable text key."""
     if error_state is None:
         return "unknown"
-    return ERROR_STATE_LABELS.get(error_state, "unknown")
+    if error_state in ERROR_STATE_LABELS:
+        return ERROR_STATE_LABELS[error_state]
+    if 0 <= error_state <= 20:
+        return f"error_code_{error_state}"
+    return "unknown"
+
+
+def map_spr_to_text(spr_code: int | None) -> str:
+    """Map SPR code into readable text key."""
+    if spr_code is None:
+        return "unknown"
+    if spr_code in SPR_LABELS:
+        return SPR_LABELS[spr_code]
+    if 0 <= spr_code <= 20:
+        return f"spr_code_{spr_code}"
+    return "unknown"
 
 
 class KaschuetzDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
