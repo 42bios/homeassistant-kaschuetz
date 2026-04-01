@@ -10,7 +10,12 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DEFAULT_NAME, DOMAIN, RUNTIME_COORDINATOR
-from .coordinator import KaschuetzDataCoordinator, map_com_error_to_text, map_state_to_text
+from .coordinator import (
+    KaschuetzDataCoordinator,
+    map_com_error_to_text,
+    map_error_state_to_text,
+    map_state_to_text,
+)
 
 SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
     SensorEntityDescription(
@@ -29,6 +34,16 @@ SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
     SensorEntityDescription(
         key="com_error_text",
         translation_key="com_error_text",
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    SensorEntityDescription(
+        key="error_state_code",
+        translation_key="error_state_code",
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    SensorEntityDescription(
+        key="error_state_text",
+        translation_key="error_state_text",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     SensorEntityDescription(
@@ -118,6 +133,11 @@ class KaschuetzSensor(CoordinatorEntity[KaschuetzDataCoordinator], SensorEntity)
         if key == "com_error_text":
             com_error = data.get("ComError")
             return map_com_error_to_text(com_error if isinstance(com_error, int) else None)
+        if key == "error_state_code":
+            return data.get("errorState")
+        if key == "error_state_text":
+            error_state = data.get("errorState")
+            return map_error_state_to_text(error_state if isinstance(error_state, int) else None)
         if key == "connection_quality":
             return self.coordinator.connection_quality
         if key == "consecutive_failures":

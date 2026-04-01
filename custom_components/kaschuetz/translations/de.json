@@ -72,6 +72,25 @@
           "unknown": "Unbekannt"
         }
       },
+      "error_state_code": {
+        "name": "Ofenfehlercode"
+      },
+      "error_state_text": {
+        "name": "Ofenfehler",
+        "state": {
+          "ok": "OK",
+          "error_code_1": "Fehlercode 1",
+          "error_code_2": "Fehlercode 2",
+          "error_code_3": "Fehlercode 3",
+          "error_code_4": "Fehlercode 4",
+          "error_code_5": "Fehlercode 5",
+          "error_code_6": "Fehlercode 6",
+          "error_code_7": "Fehlercode 7",
+          "error_code_8": "Fehlercode 8",
+          "error_code_9": "Fehlercode 9",
+          "unknown": "Unbekannt"
+        }
+      },
       "connection_quality": {
         "name": "Verbindungsqualität"
       },

@@ -42,6 +42,19 @@ COM_ERROR_LABELS: dict[int, str] = {
     9: "communication_lost",
 }
 
+ERROR_STATE_LABELS: dict[int, str] = {
+    0: "ok",
+    1: "error_code_1",
+    2: "error_code_2",
+    3: "error_code_3",
+    4: "error_code_4",
+    5: "error_code_5",
+    6: "error_code_6",
+    7: "error_code_7",
+    8: "error_code_8",
+    9: "error_code_9",
+}
+
 
 def map_state_to_text(state: int | None) -> str:
     """Map integer state into readable text."""
@@ -53,6 +66,13 @@ def map_com_error_to_text(com_error: int | None) -> str:
     if com_error is None:
         return "unknown"
     return COM_ERROR_LABELS.get(com_error, "unknown")
+
+
+def map_error_state_to_text(error_state: int | None) -> str:
+    """Map oven error state code into readable text key."""
+    if error_state is None:
+        return "unknown"
+    return ERROR_STATE_LABELS.get(error_state, "unknown")
 
 
 class KaschuetzDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):

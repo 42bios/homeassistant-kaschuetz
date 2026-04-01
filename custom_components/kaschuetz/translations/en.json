@@ -72,6 +72,25 @@
           "unknown": "Unknown"
         }
       },
+      "error_state_code": {
+        "name": "Oven Error State Code"
+      },
+      "error_state_text": {
+        "name": "Oven Error State",
+        "state": {
+          "ok": "OK",
+          "error_code_1": "Error code 1",
+          "error_code_2": "Error code 2",
+          "error_code_3": "Error code 3",
+          "error_code_4": "Error code 4",
+          "error_code_5": "Error code 5",
+          "error_code_6": "Error code 6",
+          "error_code_7": "Error code 7",
+          "error_code_8": "Error code 8",
+          "error_code_9": "Error code 9",
+          "unknown": "Unknown"
+        }
+      },
       "connection_quality": {
         "name": "Connection Quality"
       },
