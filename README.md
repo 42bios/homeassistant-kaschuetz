@@ -6,7 +6,7 @@
 
 Home Assistant custom integration for Kaschuetz oven controllers with adaptive burn optimization.
 
-![Kaschuetz HACS Preview](.github/images/hacs_preview.png)
+![Kaschuetz HACS Preview](https://raw.githubusercontent.com/42bios/homeassistant-kaschuetz/main/.github/images/hacs_preview.png?v=20260401-2)
 
 ## Highlights
 - UI config flow (`Settings -> Devices & Services`)
