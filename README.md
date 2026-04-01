@@ -17,6 +17,8 @@ Home Assistant custom integration for Kaschuetz oven controllers with adaptive b
 - Diagnostics endpoint for faster issue analysis
 
 ## HACS Installation (Recommended)
+[![Open your Home Assistant instance and open this repository in HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=42bios&repository=homeassistant-kaschuetz&category=integration)
+
 1. Open HACS in Home Assistant.
 2. Go to `Integrations`.
 3. Open menu (three dots) -> `Custom repositories`.
