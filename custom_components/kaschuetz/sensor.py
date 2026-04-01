@@ -1,4 +1,4 @@
-﻿"""Kaschuetz sensor platform."""
+"""Kaschuetz sensor platform."""
 
 from __future__ import annotations
 

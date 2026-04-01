@@ -1,4 +1,4 @@
-﻿"""Initialize the Kaschuetz integration."""
+"""Initialize the Kaschuetz integration."""
 
 from __future__ import annotations
 

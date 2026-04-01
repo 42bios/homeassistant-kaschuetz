@@ -1,4 +1,4 @@
-﻿from custom_components.kaschuetz.optimizer import BurnOptimizer
+from custom_components.kaschuetz.optimizer import BurnOptimizer
 
 
 def test_optimizer_low_confidence_with_few_samples() -> None:

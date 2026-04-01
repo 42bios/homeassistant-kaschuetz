@@ -1,4 +1,4 @@
-﻿services:
+services:
   homeassistant:
     container_name: ha-dev-kaschuetz
     image: ghcr.io/home-assistant/home-assistant:stable
