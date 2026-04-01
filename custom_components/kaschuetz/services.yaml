@@ -10,6 +10,18 @@ calculate_optimization:
       selector:
         text:
 
+preview_only:
+  name: Preview Only
+  description: Show a read-only optimization preview with current values, suggested values, and deltas. No values are written.
+  fields:
+    entry_id:
+      name: Entry ID
+      description: Optional config entry id to preview for only one Kaschuetz device.
+      required: false
+      example: "abcd1234efgh5678"
+      selector:
+        text:
+
 apply_optimization:
   name: Apply Optimization
   description: Apply suggested burn parameters to integration options and optionally write them to the device. Works only when experimental auto optimization is enabled in integration options.

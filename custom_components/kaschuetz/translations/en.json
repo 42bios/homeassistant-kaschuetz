@@ -184,6 +184,16 @@
         }
       }
     },
+    "preview_only": {
+      "name": "Preview Only",
+      "description": "Show a read-only optimization preview with current values, suggested values, and deltas. No values are written.",
+      "fields": {
+        "entry_id": {
+          "name": "Entry ID",
+          "description": "Optional config entry ID to preview one Kaschuetz device only."
+        }
+      }
+    },
     "apply_optimization": {
       "name": "Apply Optimization",
       "description": "Apply suggested burn parameters to options and optionally write them to the device. Requires experimental auto optimization to be enabled in options.",

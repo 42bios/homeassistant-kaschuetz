@@ -32,6 +32,7 @@ from .const import (
     SERVICE_APPLY_OPTIMIZATION,
     SERVICE_CALCULATE_OPTIMIZATION,
     SERVICE_OPTIMIZE_AND_APPLY,
+    SERVICE_PREVIEW_ONLY,
     SERVICE_RESET_OPTIMIZATION,
 )
 from .coordinator import KaschuetzDataCoordinator
@@ -97,6 +98,42 @@ def _suggestion_to_text(entry_id: str, suggestion: dict[str, Any]) -> str:
     )
 
 
+def _safe_int(value: Any, fallback: int) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return fallback
+
+
+def _suggestion_preview_text(entry: ConfigEntry, suggestion: dict[str, Any]) -> str:
+    current = {
+        "aTemp": _safe_int(entry.options.get("aTemp"), 200),
+        "schW": _safe_int(entry.options.get("schW"), 300),
+        "regW": _safe_int(entry.options.get("regW"), 600),
+        "regP": _safe_int(entry.options.get("regP"), 200),
+    }
+    proposed = {
+        "aTemp": _safe_int(suggestion.get("aTemp"), current["aTemp"]),
+        "schW": _safe_int(suggestion.get("schW"), current["schW"]),
+        "regW": _safe_int(suggestion.get("regW"), current["regW"]),
+        "regP": _safe_int(suggestion.get("regP"), current["regP"]),
+    }
+    delta = {key: proposed[key] - current[key] for key in current}
+
+    return (
+        f"Entry: {entry.entry_id}\n"
+        f"Preview only: no parameters will be written.\n"
+        f"Samples: {suggestion.get('samples_used')}, Cycles: {suggestion.get('cycles_used')}\n"
+        f"Confidence: {suggestion.get('confidence')}\n"
+        f"Current: {current}\n"
+        f"Proposed: {proposed}\n"
+        f"Delta: {delta}\n"
+        f"Stats: {suggestion.get('stats')}\n"
+        f"Cycle stats: {suggestion.get('cycle_stats')}\n"
+        f"Note: {suggestion.get('note', '-')}"
+    )
+
+
 def _can_apply(suggestion: dict[str, Any], min_confidence: str) -> bool:
     value = CONFIDENCE_ORDER.get(str(suggestion.get("confidence", CONFIDENCE_LOW)), 1)
     required = CONFIDENCE_ORDER.get(min_confidence, 1)
@@ -130,21 +167,22 @@ async def _apply_suggestion_to_entry(
 
 
 async def _async_setup_services(hass: HomeAssistant) -> None:
-    async def _handle_calculate_optimization(call: ServiceCall) -> None:
-        requested_entry_id = call.data.get("entry_id")
-        suggestions: list[str] = []
-
+    async def _build_preview_messages(requested_entry_id: str | None) -> list[str]:
+        messages: list[str] = []
         for entry in _find_entries(hass, requested_entry_id):
             runtime = hass.data[DOMAIN].get(entry.entry_id)
             if not runtime:
                 continue
             optimizer: BurnOptimizer = runtime[RUNTIME_OPTIMIZER]
             suggestion = optimizer.calculate(dict(entry.options))
-            suggestions.append(_suggestion_to_text(entry.entry_id, suggestion))
+            messages.append(_suggestion_preview_text(entry, suggestion))
+        if not messages:
+            messages.append("No matching Kaschuetz config entry found.")
+        return messages
 
-        if not suggestions:
-            suggestions.append("No matching Kaschuetz config entry found.")
-
+    async def _handle_calculate_optimization(call: ServiceCall) -> None:
+        requested_entry_id = call.data.get("entry_id")
+        suggestions = await _build_preview_messages(requested_entry_id)
         message = "\n\n".join(suggestions)
         _LOGGER.info("Kaschuetz optimization result:\n%s", message)
         persistent_notification.async_create(
@@ -152,6 +190,18 @@ async def _async_setup_services(hass: HomeAssistant) -> None:
             message,
             title="Kaschuetz Optimization Suggestion",
             notification_id="kaschuetz_optimization",
+        )
+
+    async def _handle_preview_only(call: ServiceCall) -> None:
+        requested_entry_id = call.data.get("entry_id")
+        previews = await _build_preview_messages(requested_entry_id)
+        message = "\n\n".join(previews)
+        _LOGGER.info("Kaschuetz preview-only result:\n%s", message)
+        persistent_notification.async_create(
+            hass,
+            message,
+            title="Kaschuetz Preview Only",
+            notification_id="kaschuetz_preview_only",
         )
 
     async def _handle_apply_optimization(call: ServiceCall) -> None:
@@ -236,6 +286,13 @@ async def _async_setup_services(hass: HomeAssistant) -> None:
     async_register_admin_service(
         hass,
         DOMAIN,
+        SERVICE_PREVIEW_ONLY,
+        _handle_preview_only,
+        schema=ENTRY_SCHEMA,
+    )
+    async_register_admin_service(
+        hass,
+        DOMAIN,
         SERVICE_APPLY_OPTIMIZATION,
         _handle_apply_optimization,
         schema=APPLY_SCHEMA,
@@ -304,6 +361,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         loaded_entries = hass.config_entries.async_entries(DOMAIN)
         if not loaded_entries:
             hass.services.async_remove(DOMAIN, SERVICE_CALCULATE_OPTIMIZATION)
+            hass.services.async_remove(DOMAIN, SERVICE_PREVIEW_ONLY)
             hass.services.async_remove(DOMAIN, SERVICE_APPLY_OPTIMIZATION)
             hass.services.async_remove(DOMAIN, SERVICE_OPTIMIZE_AND_APPLY)
             hass.services.async_remove(DOMAIN, SERVICE_RESET_OPTIMIZATION)

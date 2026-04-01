@@ -184,6 +184,16 @@
         }
       }
     },
+    "preview_only": {
+      "name": "Nur Vorschau",
+      "description": "Zeigt eine schreibgeschützte Optimierungsvorschau mit Ist-Werten, Vorschlagswerten und Delta. Es werden keine Werte geschrieben.",
+      "fields": {
+        "entry_id": {
+          "name": "Entry-ID",
+          "description": "Optionale Config-Entry-ID, um die Vorschau nur für ein Kaschuetz-Gerät zu berechnen."
+        }
+      }
+    },
     "apply_optimization": {
       "name": "Optimierung anwenden",
       "description": "Übernimmt vorgeschlagene Abbrandparameter in die Optionen und schreibt sie optional auf das Gerät. Erfordert aktivierte experimentelle Auto-Optimierung in den Optionen.",

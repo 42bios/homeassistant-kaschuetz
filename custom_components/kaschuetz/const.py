@@ -17,6 +17,7 @@ MAX_UPDATE_INTERVAL: Final = 300
 DEFAULT_EXPERIMENTAL_AUTO_OPTIMIZE: Final = False
 
 SERVICE_CALCULATE_OPTIMIZATION: Final = "calculate_optimization"
+SERVICE_PREVIEW_ONLY: Final = "preview_only"
 SERVICE_APPLY_OPTIMIZATION: Final = "apply_optimization"
 SERVICE_RESET_OPTIMIZATION: Final = "reset_optimization_data"
 SERVICE_OPTIMIZE_AND_APPLY: Final = "optimize_and_apply"
