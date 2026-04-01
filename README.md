@@ -1,100 +1,97 @@
-# Kaschuetz Oven Control - Home Assistant Integration
+﻿# Kaschuetz Oven Control
 
-This custom integration allows you to integrate the **Kaschuetz Oven** into Home Assistant, providing convenient access to oven state, temperature, flap position, and more. It features a **UI-based config flow** for easy setup, optional **season-based** error skipping, and an **options flow** for adjusting advanced abbrand parameters.
-
----
+Home Assistant custom integration for a Kaschuetz oven controller with adaptive burn optimization.
 
 ## Features
-
-- **Config Flow** – Add the oven in the Home Assistant UI, no YAML needed.
-- **DataUpdateCoordinator** – Only a single request per update cycle (minimal overhead).
-- **Optional Season Entity** – Skip requests/avoid errors in summer (`sensor.season`).
-- **Advanced Parameters** – `aTemp`, `schW` (Closing Value), `regW`, `regP` can be set in an options flow.
-- **Translated** – English and German translation files included.
-
----
+- UI config flow (no YAML)
+- Polling via `rqType=1` with health metrics
+- Optional `season_entity` support (skip polling when state is `summer`)
+- Writable burn parameters (`aTemp`, `schW`, `regW`, `regP`) via UI entities
+- Optimizer with cycle detection, confidence scoring, and persistence
+- Diagnostics endpoint for support-friendly debugging
 
 ## Installation
-
-1. **Download/Clone** this repository and place the folder `kaschuetz` inside:
-custom_components/kaschuetz/
-
-2. **Restart Home Assistant** once the files are in place.
-
----
+1. Copy `custom_components/kaschuetz` into your Home Assistant config folder.
+2. Restart Home Assistant.
+3. Add integration in `Settings -> Devices & Services -> Add Integration`.
 
 ## Configuration
+Required:
+- `host` (IP or hostname of the oven controller)
 
-1. **Add Integration**:
-- In Home Assistant, go to **Settings → Devices & Services → Integrations**.
-- Click **+ Add Integration** and search for **Kaschuetz Oven Control**.
-2. **Enter Host**:
-- Provide the IP/host of your Kaschuetz Oven (e.g. `192.168.34.157`).
-- (Optional) Provide a `season_entity` (like `sensor.season`) if you want to skip requests during summer.
-3. **Complete Setup**:
-- Click **Submit**. If the connection test succeeds, your oven is added as an integration.
+Optional:
+- `season_entity` (example: `sensor.season`)
 
-### Advanced Options (Abbrand Parameters)
+## Entities
+### Sensor
+- Temperature (`Temp`, degC)
+- Flap Position (`Klappe`)
+- Burn Status (mapped from `state`)
+- Communication Error Code (`ComError`)
+- Communication Error Text (mapped)
+- Connection Quality (%)
+- Consecutive Failures
 
-- After the initial setup, click the **Configure** (gear icon) button on the Kaschuetz integration.
-- You can edit advanced parameters:
-- **aTemp** – Active Temperature
-- **schW** – Closing Value (Schließwert)
-- **regW** – Regulation Value
-- **regP** – Regulation Period
-- These will be stored in the integration’s options. The integration may fetch the current parameters from the device (if supported) and show them as defaults.
+### Binary Sensor
+- Door (on when `state == 7`)
+- Communication Problem
 
----
+### Number
+- Active Temperature (`aTemp`)
+- Closing Value (`schW`)
+- Regulation Value (`regW`)
+- Regulation Period (`regP`)
 
-## Available Sensors
+### Select
+- Optimizer Mode (`conservative`, `balanced`, `aggressive`)
 
-Once configured, you’ll see up to **five sensors**:
+### Button
+- Calculate Optimization
+- Apply Optimization (Safe)
+- Apply Optimization (To Device)
+- Reset Optimization Data
 
-| Sensor Name                          | Description                                         |
-|--------------------------------------|-----------------------------------------------------|
-| `Kaschuetz Temperature`             | Current oven temperature (`Temp`) in °C             |
-| `Kaschuetz Door_status`             | Door state (open/closed) based on oven `state=7`    |
-| `Kaschuetz Flap_position`           | Flap position (`Klappe`), e.g. 0 = open, 7 = closed |
-| `Kaschuetz Burn_status`             | Numeric `state` mapped to text (e.g. 3 = Betrieb)   |
-| `Kaschuetz Error`                   | Error message from the oven (`errorState`)          |
+## Services
+- `kaschuetz.calculate_optimization`
+- `kaschuetz.apply_optimization`
+  - supports `write_to_device` and `min_confidence`
+- `kaschuetz.optimize_and_apply`
+  - shortcut to apply optimization with confidence gating
+- `kaschuetz.reset_optimization_data`
 
-### Oven States
+Service UI hint (Home Assistant 2026):
+- Open `Developer Tools -> Actions` (not the old Services tab)
+- Search for `kaschuetz.*`
 
-The oven can report these states (mapped to text in the UI):
+## Optimization model
+- Learns from observed burn samples during normal polling
+- Detects coarse burn cycles using active-state transitions
+- Uses cycle stability + error ratio to calculate confidence
+- Stores training data persistently across Home Assistant restarts
 
-| State | Meaning                |
-|-------|------------------------|
-| 1     | Standby               |
-| 2     | Start                 |
-| 3     | Betrieb               |
-| 4     | Glutphase             |
-| 5     | Warte auf Aktiv       |
-| 6     | Ruhezustand           |
-| 7     | Fülltür offen         |
-| 8     | Suche Maximum         |
-| 9     | Abbrandregelung       |
-| 10    | Abbrand beendet       |
+## State mapping
+- `1` Standby
+- `2` Start
+- `3` Betrieb
+- `4` Glutphase
+- `5` Warte auf Aktiv
+- `6` Ruhezustand
+- `7` Fuelltuere offen
+- `8` Suche Maximum
+- `9` Abbrandregelung
+- `10` Abbrand beendet
 
----
+## Development
+Local quality checks:
+```powershell
+python -m compileall custom_components\kaschuetz
+ruff check .
+pytest -q
+```
 
-## Optional: Summer Skipping
+CI:
+- GitHub Actions workflow at `.github/workflows/ci.yml`
 
-If you provide a `season_entity` in the config flow (e.g. `sensor.season`), the integration checks if it’s `summer`. If so, it **skips** requests to avoid unnecessary errors (like if the oven is offline all summer).
-
----
-
-## Updating Burn-off Parameters
-
-If your Kaschuetz device supports reading/writing advanced parameters (e.g. `aTemp`, `schW`, etc.), the integration attempts to:
-
-1. Fetch current values from `rqType=4` (example) during the **Options Flow**.
-2. Let you **update** them in the same flow.  
-3. **(Optionally)** send them back to the device if you extend the code with `setMenuParams`. 
-
----
-
-## Contributing & Support
-
-Feel free to open issues or pull requests on [GitHub](https://github.com/42bios/homeassistant-kaschuetz). For additional features or bug reports, please include logs and a short description of your setup.
-
-Enjoy controlling your Kaschuetz Oven with Home Assistant!
+## Support
+- Issues: https://github.com/42bios/homeassistant-kaschuetz/issues
+- Repo: https://github.com/42bios/homeassistant-kaschuetz

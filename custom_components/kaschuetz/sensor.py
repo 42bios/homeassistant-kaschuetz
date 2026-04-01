@@ -1,174 +1,151 @@
-"""Kaschuetz sensor platform with DataUpdateCoordinator.
-
-Provides temperature, door_status, flap_position, burn_status, and error sensors.
-"""
+﻿"""Kaschuetz sensor platform."""
 
 from __future__ import annotations
 
-import logging
-import requests
-from datetime import timedelta
-from typing import Any, Optional
-
-from homeassistant.components.sensor import SensorEntity
-from homeassistant.core import HomeAssistant
+from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorEntityDescription
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import EntityCategory, PERCENTAGE, UnitOfTemperature
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import (
-    DataUpdateCoordinator,
-    CoordinatorEntity,
-    UpdateFailed,
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
+
+from .const import DEFAULT_NAME, DOMAIN, RUNTIME_COORDINATOR
+from .coordinator import KaschuetzDataCoordinator, map_com_error_to_text, map_state_to_text
+
+SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
+    SensorEntityDescription(
+        key="temperature",
+        name="Temperature",
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        device_class=SensorDeviceClass.TEMPERATURE,
+    ),
+    SensorEntityDescription(key="flap_position", name="Flap Position"),
+    SensorEntityDescription(key="burn_status", name="Burn Status"),
+    SensorEntityDescription(
+        key="com_error_code",
+        name="Communication Error Code",
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    SensorEntityDescription(
+        key="com_error_text",
+        name="Communication Error",
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    SensorEntityDescription(
+        key="connection_quality",
+        name="Connection Quality",
+        native_unit_of_measurement=PERCENTAGE,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    SensorEntityDescription(
+        key="consecutive_failures",
+        name="Consecutive Failures",
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    SensorEntityDescription(
+        key="last_successful_poll",
+        name="Last Successful Poll",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    SensorEntityDescription(
+        key="optimizer_samples",
+        name="Optimizer Samples",
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    SensorEntityDescription(
+        key="optimizer_cycles",
+        name="Optimizer Cycles",
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    SensorEntityDescription(
+        key="optimizer_confidence",
+        name="Optimizer Confidence",
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
 )
-from .const import (
-    DOMAIN, DEFAULT_NAME,
-    DEFAULT_UPDATE_INTERVAL
-)
 
-_LOGGER = logging.getLogger(__name__)
-
-def map_state_to_text(state: Optional[int]) -> str:
-    """
-    Convert numeric states to text labels.
-    If state is None or unknown, return "unknown".
-    """
-    state_map = {
-        1: "Standby",
-        2: "Start",
-        3: "Betrieb",
-        4: "Glutphase",
-        5: "Warte auf Aktiv",
-        6: "Ruhezustand",
-        7: "Fülltür offen",
-        8: "Suche Maximum",
-        9: "Abbrandregelung",
-        10: "Abbrand beendet",
-    }
-    return state_map.get(state, "unknown")
-
-def _fetch_kaschuetz_data(host: str) -> dict[str, Any]:
-    """
-    Perform a single request to the device to get main Temp/State (rqType=1).
-    Return a dict with keys like: {"Temp": 22, "state":3, "ComError":9, ...}
-    """
-    url = f"http://{host}/jsonRq"
-    try:
-        resp = requests.post(url, json={"rqType": 1}, timeout=5)
-        resp.raise_for_status()
-        data = resp.json()
-        _LOGGER.debug("Fetched main data from device: %s", data)
-        return data
-    except requests.RequestException as err:
-        raise UpdateFailed(f"Error communicating with Kaschuetz: {err}") from err
-
-class KaschuetzDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
-    """Coordinates fetching device data in regular intervals."""
-
-    def __init__(
-        self,
-        hass: HomeAssistant,
-        host: str,
-        season_entity: str | None,
-        poll_interval: int
-    ) -> None:
-        """
-        Initialize the coordinator.
-
-        :param host: IP or hostname of the device
-        :param season_entity: optional entity_id for season (if 'summer' => skip)
-        :param poll_interval: how often in seconds we poll the device
-        """
-        super().__init__(
-            hass,
-            _LOGGER,
-            name="Kaschuetz Data Coordinator",
-            update_interval=timedelta(seconds=poll_interval),
-        )
-        self.host = host
-        self.season_entity = season_entity
-
-    async def _async_update_data(self) -> dict[str, Any]:
-        """
-        Fetch data from the device. If season=summer, skip requests to avoid errors.
-        Return an empty dict if skipping or if device offline.
-        """
-        if self.season_entity:
-            season_state = self.hass.states.get(self.season_entity)
-            if season_state and season_state.state.lower() == "summer":
-                _LOGGER.info("Season is 'summer'; skipping Kaschuetz device call.")
-                return {}
-
-        return await self.hass.async_add_executor_job(_fetch_kaschuetz_data, self.host)
 
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
-    async_add_entities: AddEntitiesCallback
+    async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """
-    Set up Kaschuetz sensors from a config entry.
-
-    This is called after the user configures the integration in the UI.
-    """
-    data = entry.data
-    host: str = data["host"]
-    season_entity: str | None = data.get("season_entity")
-
-    poll_interval = entry.options.get("update_interval", DEFAULT_UPDATE_INTERVAL)
-    _LOGGER.debug("Kaschuetz sensor setup with poll interval: %s", poll_interval)
-
-    coordinator = KaschuetzDataCoordinator(hass, host, season_entity, poll_interval)
-    await coordinator.async_config_entry_first_refresh()
-
-    sensors = [
-        KaschuetzSensor(coordinator, "temperature"),
-        KaschuetzSensor(coordinator, "door_status"),
-        KaschuetzSensor(coordinator, "flap_position"),
-        KaschuetzSensor(coordinator, "burn_status"),
-        KaschuetzSensor(coordinator, "error"),
+    """Set up Kaschuetz sensors from config entry."""
+    coordinator: KaschuetzDataCoordinator = hass.data[DOMAIN][entry.entry_id][RUNTIME_COORDINATOR]
+    entities = [
+        KaschuetzSensor(entry, coordinator, description) for description in SENSOR_DESCRIPTIONS
     ]
-    async_add_entities(sensors, update_before_add=True)
+    async_add_entities(entities)
 
-class KaschuetzSensor(CoordinatorEntity, SensorEntity):
-    """
-    A single sensor reading from the shared DataUpdateCoordinator.
 
-    sensor_type can be one of:
-      - 'temperature'
-      - 'door_status'
-      - 'flap_position'
-      - 'burn_status'
-      - 'error'
-    """
+class KaschuetzSensor(CoordinatorEntity[KaschuetzDataCoordinator], SensorEntity):
+    """Single sensor backed by the shared Kaschuetz coordinator."""
 
     def __init__(
         self,
+        entry: ConfigEntry,
         coordinator: KaschuetzDataCoordinator,
-        sensor_type: str
+        description: SensorEntityDescription,
     ) -> None:
-        """Initialize the sensor."""
         super().__init__(coordinator)
-        self._sensor_type = sensor_type
-        self._attr_unique_id = f"kaschuetz_{sensor_type}_{coordinator.host}"
-        self._attr_name = f"{DEFAULT_NAME} {sensor_type.capitalize()}"
+        self._entry = entry
+        self.entity_description = description
+        self._attr_unique_id = f"kaschuetz_{description.key}_{coordinator.host}"
+        self._attr_name = description.name
+        self._attr_has_entity_name = True
+        self._attr_device_info = {
+            "identifiers": {("kaschuetz", coordinator.host)},
+            "name": DEFAULT_NAME,
+            "manufacturer": "Kaschuetz",
+            "model": "Oven Controller",
+        }
 
     @property
-    def native_value(self) -> str | int | None:
-        """Return the sensor's value from coordinator data, or None if not available."""
-        data = self.coordinator.data
-        if not data:
-            return None
+    def native_value(self):
+        """Return current sensor value from coordinator data."""
+        data = self.coordinator.data or {}
+        key = self.entity_description.key
 
-        if self._sensor_type == "temperature":
+        if key == "temperature":
             return data.get("Temp")
-        elif self._sensor_type == "door_status":
-            st = data.get("state")
-            return "open" if st == 7 else "closed"
-        elif self._sensor_type == "flap_position":
+        if key == "flap_position":
             return data.get("Klappe")
-        elif self._sensor_type == "burn_status":
-            st = data.get("state")
-            return map_state_to_text(st if isinstance(st, int) else None)
-        elif self._sensor_type == "error":
-            return data.get("errorState", "none")
+        if key == "burn_status":
+            state = data.get("state")
+            return map_state_to_text(state if isinstance(state, int) else None)
+        if key == "com_error_code":
+            return data.get("ComError")
+        if key == "com_error_text":
+            com_error = data.get("ComError")
+            return map_com_error_to_text(com_error if isinstance(com_error, int) else None)
+        if key == "connection_quality":
+            return self.coordinator.connection_quality
+        if key == "consecutive_failures":
+            return self.coordinator.consecutive_failures
+        if key == "last_successful_poll":
+            return self.coordinator.last_success
+        if key == "optimizer_samples":
+            return self.coordinator.optimizer.sample_count()
+        if key == "optimizer_cycles":
+            suggestion = self.coordinator.optimizer.calculate(dict(self._entry.options))
+            return suggestion.get("cycles_used")
+        if key == "optimizer_confidence":
+            suggestion = self.coordinator.optimizer.calculate(dict(self._entry.options))
+            return suggestion.get("confidence")
+        return None
 
+    @property
+    def extra_state_attributes(self) -> dict | None:
+        """Expose additional diagnostics for optimization sensors."""
+        key = self.entity_description.key
+        if key in {"optimizer_cycles", "optimizer_confidence"}:
+            suggestion = self.coordinator.optimizer.calculate(dict(self._entry.options))
+            return {
+                "samples_used": suggestion.get("samples_used"),
+                "cycles_used": suggestion.get("cycles_used"),
+                "stats": suggestion.get("stats"),
+                "cycle_stats": suggestion.get("cycle_stats"),
+                "optimizer_mode": suggestion.get("optimizer_mode"),
+            }
         return None

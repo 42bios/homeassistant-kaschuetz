@@ -17,26 +17,16 @@
   "options": {
     "step": {
       "init": {
-        "title": "Adjust Abbrand Parameters",
+        "title": "Adjust Burn Parameters",
         "data": {
           "aTemp": "Active Temperature",
           "schW": "Closing Value",
           "regW": "Regulation Value",
-          "regP": "Regulation Period"
+          "regP": "Regulation Period",
+          "update_interval": "Update interval (seconds)",
+          "optimizer_mode": "Optimizer mode"
         }
       }
     }
-  },
-  "state": {
-    "state_1": "Standby",
-    "state_2": "Start",
-    "state_3": "Operating",
-    "state_4": "Embers",
-    "state_5": "Waiting for Activation",
-    "state_6": "Idle",
-    "state_7": "Door Open",
-    "state_8": "Searching Maximum",
-    "state_9": "Optimized Burn",
-    "state_10": "Burn Completed"
   }
 }

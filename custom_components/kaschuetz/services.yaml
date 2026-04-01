@@ -1,0 +1,83 @@
+calculate_optimization:
+  name: Calculate Optimization
+  description: Create a suggested set of burn parameters from observed Kaschuetz burn data.
+  fields:
+    entry_id:
+      name: Entry ID
+      description: Optional config entry id to calculate for only one Kaschuetz device.
+      required: false
+      example: "abcd1234efgh5678"
+      selector:
+        text:
+
+apply_optimization:
+  name: Apply Optimization
+  description: Apply suggested burn parameters to integration options and optionally write them to the device.
+  fields:
+    entry_id:
+      name: Entry ID
+      description: Optional config entry id to apply settings for only one Kaschuetz device.
+      required: false
+      example: "abcd1234efgh5678"
+      selector:
+        text:
+    write_to_device:
+      name: Write to device
+      description: When enabled, values are sent to the oven with rqType=8 before saving options.
+      required: false
+      default: false
+      selector:
+        boolean:
+    min_confidence:
+      name: Minimum confidence
+      description: Only applies optimization if confidence is at least this level.
+      required: false
+      default: low
+      selector:
+        select:
+          options:
+            - low
+            - medium
+            - high
+
+optimize_and_apply:
+  name: Optimize And Apply
+  description: Shortcut for apply_optimization with confidence gating.
+  fields:
+    entry_id:
+      name: Entry ID
+      description: Optional config entry id to apply settings for only one Kaschuetz device.
+      required: false
+      example: "abcd1234efgh5678"
+      selector:
+        text:
+    write_to_device:
+      name: Write to device
+      description: When enabled, values are sent to the oven with rqType=8 before saving options.
+      required: false
+      default: false
+      selector:
+        boolean:
+    min_confidence:
+      name: Minimum confidence
+      description: Only applies optimization if confidence is at least this level.
+      required: false
+      default: medium
+      selector:
+        select:
+          options:
+            - low
+            - medium
+            - high
+
+reset_optimization_data:
+  name: Reset Optimization Data
+  description: Delete observed burn samples used by the optimizer.
+  fields:
+    entry_id:
+      name: Entry ID
+      description: Optional config entry id to reset data for only one Kaschuetz device.
+      required: false
+      example: "abcd1234efgh5678"
+      selector:
+        text:
