@@ -180,7 +180,7 @@ class BurnOptimizer:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any] | None) -> "BurnOptimizer":
+    def from_dict(cls, data: dict[str, Any] | None) -> BurnOptimizer:
         """Create optimizer from persisted data."""
         optimizer = cls()
         if not data:

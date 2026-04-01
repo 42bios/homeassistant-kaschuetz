@@ -17,11 +17,11 @@ from .api import KaschuetzApiError, async_send_abbrand_params
 from .const import (
     CONF_HOST,
     CONF_SEASON_ENTITY,
+    CONF_UPDATE_INTERVAL,
     CONFIDENCE_HIGH,
     CONFIDENCE_LOW,
     CONFIDENCE_MEDIUM,
     CONFIDENCE_ORDER,
-    CONF_UPDATE_INTERVAL,
     DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
     RUNTIME_COORDINATOR,

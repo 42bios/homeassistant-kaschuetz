@@ -9,13 +9,12 @@ Implements:
 from __future__ import annotations
 
 import logging
-from urllib.parse import urlsplit
-
 from typing import Any
+from urllib.parse import urlsplit
 
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.config_entries import ConfigFlow, ConfigEntry
+from homeassistant.config_entries import ConfigEntry, ConfigFlow
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
 
@@ -30,12 +29,12 @@ from .const import (
     CONF_OPTIMIZER_MODE,
     CONF_SEASON_ENTITY,
     CONF_UPDATE_INTERVAL,
-    DEFAULT_UPDATE_INTERVAL,
     DEFAULT_A_TEMP,
+    DEFAULT_NAME,
     DEFAULT_REGP,
     DEFAULT_REGW,
     DEFAULT_SCHW,
-    DEFAULT_NAME,
+    DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
     MAX_UPDATE_INTERVAL,
     MIN_UPDATE_INTERVAL,
