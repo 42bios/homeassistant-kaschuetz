@@ -111,3 +111,6 @@ pytest -q
 ## Support
 - Issues: https://github.com/42bios/homeassistant-kaschuetz/issues
 - Releases: https://github.com/42bios/homeassistant-kaschuetz/releases
+
+## License
+MIT - see [LICENSE](LICENSE).
