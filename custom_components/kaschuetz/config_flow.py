@@ -25,11 +25,13 @@ from .api import (
     async_send_abbrand_params,
 )
 from .const import (
+    CONF_EXPERIMENTAL_AUTO_OPTIMIZE,
     CONF_HOST,
     CONF_OPTIMIZER_MODE,
     CONF_SEASON_ENTITY,
     CONF_UPDATE_INTERVAL,
     DEFAULT_A_TEMP,
+    DEFAULT_EXPERIMENTAL_AUTO_OPTIMIZE,
     DEFAULT_NAME,
     DEFAULT_REGP,
     DEFAULT_REGW,
@@ -156,6 +158,11 @@ class KaschuetzOptionsFlowHandler(config_entries.OptionsFlow):
         def_optimizer_mode = current_options.get(
             CONF_OPTIMIZER_MODE, OPTIMIZER_MODE_BALANCED
         )
+        def_experimental_auto_optimize = bool(
+            current_options.get(
+                CONF_EXPERIMENTAL_AUTO_OPTIMIZE, DEFAULT_EXPERIMENTAL_AUTO_OPTIMIZE
+            )
+        )
         if def_optimizer_mode not in OPTIMIZER_MODES:
             def_optimizer_mode = OPTIMIZER_MODE_BALANCED
 
@@ -171,6 +178,10 @@ class KaschuetzOptionsFlowHandler(config_entries.OptionsFlow):
             vol.Optional(CONF_OPTIMIZER_MODE, default=def_optimizer_mode): vol.In(
                 OPTIMIZER_MODES
             ),
+            vol.Optional(
+                CONF_EXPERIMENTAL_AUTO_OPTIMIZE,
+                default=def_experimental_auto_optimize,
+            ): bool,
         })
 
         return self.async_show_form(step_id="init", data_schema=schema)

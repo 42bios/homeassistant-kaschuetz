@@ -12,7 +12,12 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DEFAULT_NAME, DOMAIN, RUNTIME_COORDINATOR
+from .const import (
+    CONF_EXPERIMENTAL_AUTO_OPTIMIZE,
+    DEFAULT_NAME,
+    DOMAIN,
+    RUNTIME_COORDINATOR,
+)
 from .coordinator import KaschuetzDataCoordinator
 
 
@@ -106,3 +111,12 @@ class KaschuetzActionButton(CoordinatorEntity[KaschuetzDataCoordinator], ButtonE
             data,
             blocking=True,
         )
+
+    @property
+    def available(self) -> bool:
+        """Hide experimental apply buttons unless explicitly enabled."""
+        if not super().available:
+            return False
+        if self.entity_description.key in {"apply_optimization_safe", "apply_optimization_device"}:
+            return bool(self._entry.options.get(CONF_EXPERIMENTAL_AUTO_OPTIMIZE, False))
+        return True

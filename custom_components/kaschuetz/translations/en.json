@@ -24,7 +24,8 @@
           "regW": "Regulation Value",
           "regP": "Regulation Period",
           "update_interval": "Update interval (seconds)",
-          "optimizer_mode": "Optimizer mode"
+          "optimizer_mode": "Optimizer mode",
+          "experimental_auto_optimize": "Enable experimental auto-apply optimization"
         }
       }
     }
@@ -162,10 +163,10 @@
         "name": "Calculate Optimization"
       },
       "apply_optimization_safe": {
-        "name": "Apply Optimization (Safe)"
+        "name": "Apply Optimization (Safe, Experimental)"
       },
       "apply_optimization_device": {
-        "name": "Apply Optimization (To Device)"
+        "name": "Apply Optimization (To Device, Experimental)"
       },
       "reset_optimization_data": {
         "name": "Reset Optimization Data"
@@ -185,7 +186,7 @@
     },
     "apply_optimization": {
       "name": "Apply Optimization",
-      "description": "Apply suggested burn parameters to options and optionally write them to the device.",
+      "description": "Apply suggested burn parameters to options and optionally write them to the device. Requires experimental auto optimization to be enabled in options.",
       "fields": {
         "entry_id": {
           "name": "Entry ID",
@@ -203,7 +204,7 @@
     },
     "optimize_and_apply": {
       "name": "Optimize And Apply",
-      "description": "Shortcut for apply_optimization with confidence gating.",
+      "description": "Shortcut for apply_optimization with confidence gating. Requires experimental auto optimization to be enabled in options.",
       "fields": {
         "entry_id": {
           "name": "Entry ID",

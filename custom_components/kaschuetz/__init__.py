@@ -15,6 +15,7 @@ from homeassistant.helpers.storage import Store
 
 from .api import KaschuetzApiError, async_send_abbrand_params
 from .const import (
+    CONF_EXPERIMENTAL_AUTO_OPTIMIZE,
     CONF_HOST,
     CONF_SEASON_ENTITY,
     CONF_UPDATE_INTERVAL,
@@ -102,6 +103,11 @@ def _can_apply(suggestion: dict[str, Any], min_confidence: str) -> bool:
     return value >= required
 
 
+def _experimental_auto_optimize_enabled(entry: ConfigEntry) -> bool:
+    """Return whether experimental auto optimization is enabled for this entry."""
+    return bool(entry.options.get(CONF_EXPERIMENTAL_AUTO_OPTIMIZE, False))
+
+
 async def _apply_suggestion_to_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -157,6 +163,11 @@ async def _async_setup_services(hass: HomeAssistant) -> None:
         for entry in _find_entries(hass, requested_entry_id):
             runtime = hass.data[DOMAIN].get(entry.entry_id)
             if not runtime:
+                continue
+            if not _experimental_auto_optimize_enabled(entry):
+                updates.append(
+                    f"Entry {entry.entry_id}: skipped (experimental_auto_optimize is disabled)"
+                )
                 continue
 
             optimizer: BurnOptimizer = runtime[RUNTIME_OPTIMIZER]

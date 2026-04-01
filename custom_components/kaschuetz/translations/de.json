@@ -24,7 +24,8 @@
           "regW": "Regelwert",
           "regP": "Regelperiode",
           "update_interval": "Aktualisierungsintervall (Sekunden)",
-          "optimizer_mode": "Optimierungsmodus"
+          "optimizer_mode": "Optimierungsmodus",
+          "experimental_auto_optimize": "Experimentelle Auto-Optimierung aktivieren"
         }
       }
     }
@@ -162,10 +163,10 @@
         "name": "Optimierung berechnen"
       },
       "apply_optimization_safe": {
-        "name": "Optimierung anwenden (sicher)"
+        "name": "Optimierung anwenden (sicher, experimentell)"
       },
       "apply_optimization_device": {
-        "name": "Optimierung anwenden (an Gerät)"
+        "name": "Optimierung anwenden (an Gerät, experimentell)"
       },
       "reset_optimization_data": {
         "name": "Optimierungsdaten zurücksetzen"
@@ -185,7 +186,7 @@
     },
     "apply_optimization": {
       "name": "Optimierung anwenden",
-      "description": "Übernimmt vorgeschlagene Abbrandparameter in die Optionen und schreibt sie optional auf das Gerät.",
+      "description": "Übernimmt vorgeschlagene Abbrandparameter in die Optionen und schreibt sie optional auf das Gerät. Erfordert aktivierte experimentelle Auto-Optimierung in den Optionen.",
       "fields": {
         "entry_id": {
           "name": "Entry-ID",
@@ -203,7 +204,7 @@
     },
     "optimize_and_apply": {
       "name": "Optimieren und anwenden",
-      "description": "Abkürzung für apply_optimization mit Vertrauensprüfung.",
+      "description": "Abkürzung für apply_optimization mit Vertrauensprüfung. Erfordert aktivierte experimentelle Auto-Optimierung in den Optionen.",
       "fields": {
         "entry_id": {
           "name": "Entry-ID",

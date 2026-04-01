@@ -9,10 +9,12 @@ CONF_HOST: Final = "host"
 CONF_SEASON_ENTITY: Final = "season_entity"
 CONF_UPDATE_INTERVAL: Final = "update_interval"
 CONF_OPTIMIZER_MODE: Final = "optimizer_mode"
+CONF_EXPERIMENTAL_AUTO_OPTIMIZE: Final = "experimental_auto_optimize"
 
 DEFAULT_UPDATE_INTERVAL: Final = 30  # default poll interval (seconds)
 MIN_UPDATE_INTERVAL: Final = 5
 MAX_UPDATE_INTERVAL: Final = 300
+DEFAULT_EXPERIMENTAL_AUTO_OPTIMIZE: Final = False
 
 SERVICE_CALCULATE_OPTIMIZATION: Final = "calculate_optimization"
 SERVICE_APPLY_OPTIMIZATION: Final = "apply_optimization"

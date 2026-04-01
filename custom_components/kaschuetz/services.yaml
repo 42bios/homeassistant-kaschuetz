@@ -12,7 +12,7 @@ calculate_optimization:
 
 apply_optimization:
   name: Apply Optimization
-  description: Apply suggested burn parameters to integration options and optionally write them to the device.
+  description: Apply suggested burn parameters to integration options and optionally write them to the device. Works only when experimental auto optimization is enabled in integration options.
   fields:
     entry_id:
       name: Entry ID
@@ -42,7 +42,7 @@ apply_optimization:
 
 optimize_and_apply:
   name: Optimize And Apply
-  description: Shortcut for apply_optimization with confidence gating.
+  description: Shortcut for apply_optimization with confidence gating. Works only when experimental auto optimization is enabled in integration options.
   fields:
     entry_id:
       name: Entry ID
