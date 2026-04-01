@@ -32,8 +32,15 @@ async def async_post_json(
 
 
 async def async_fetch_main_data(hass: HomeAssistant, host: str) -> dict[str, Any]:
-    """Fetch main status payload using rqType=1."""
-    return await async_post_json(hass, host, {"rqType": 1})
+    """Fetch main status payload.
+
+    Prefer rqType=5 (status + active params) and fall back to rqType=1
+    for older firmware variants.
+    """
+    try:
+        return await async_post_json(hass, host, {"rqType": 5})
+    except KaschuetzApiError:
+        return await async_post_json(hass, host, {"rqType": 1})
 
 
 async def async_fetch_params(hass: HomeAssistant, host: str) -> dict[str, Any]:

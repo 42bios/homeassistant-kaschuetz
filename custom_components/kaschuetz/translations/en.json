@@ -72,6 +72,9 @@
           "unknown": "Unknown"
         }
       },
+      "spr_code": {
+        "name": "Controller Mode Code (spr)"
+      },
       "error_state_code": {
         "name": "Oven Error State Code"
       },
@@ -108,6 +111,18 @@
       },
       "optimizer_confidence": {
         "name": "Optimizer Confidence"
+      },
+      "device_a_temp": {
+        "name": "Device Active Temperature"
+      },
+      "device_sch_w": {
+        "name": "Device Closing Value"
+      },
+      "device_reg_w": {
+        "name": "Device Regulation Value"
+      },
+      "device_reg_p": {
+        "name": "Device Regulation Period"
       }
     },
     "binary_sensor": {

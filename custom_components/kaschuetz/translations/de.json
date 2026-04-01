@@ -72,6 +72,9 @@
           "unknown": "Unbekannt"
         }
       },
+      "spr_code": {
+        "name": "Controllermodus-Code (spr)"
+      },
       "error_state_code": {
         "name": "Ofenfehlercode"
       },
@@ -108,6 +111,18 @@
       },
       "optimizer_confidence": {
         "name": "Optimierer-Vertrauen"
+      },
+      "device_a_temp": {
+        "name": "Gerät Aktivtemperatur"
+      },
+      "device_sch_w": {
+        "name": "Gerät Schließwert"
+      },
+      "device_reg_w": {
+        "name": "Gerät Regelwert"
+      },
+      "device_reg_p": {
+        "name": "Gerät Regelperiode"
       }
     },
     "binary_sensor": {

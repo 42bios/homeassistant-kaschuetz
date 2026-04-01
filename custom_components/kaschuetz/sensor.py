@@ -37,6 +37,11 @@ SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     SensorEntityDescription(
+        key="spr_code",
+        translation_key="spr_code",
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    SensorEntityDescription(
         key="error_state_code",
         translation_key="error_state_code",
         entity_category=EntityCategory.DIAGNOSTIC,
@@ -76,6 +81,27 @@ SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
     SensorEntityDescription(
         key="optimizer_confidence",
         translation_key="optimizer_confidence",
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    SensorEntityDescription(
+        key="device_a_temp",
+        translation_key="device_a_temp",
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    SensorEntityDescription(
+        key="device_sch_w",
+        translation_key="device_sch_w",
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    SensorEntityDescription(
+        key="device_reg_w",
+        translation_key="device_reg_w",
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    SensorEntityDescription(
+        key="device_reg_p",
+        translation_key="device_reg_p",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
 )
@@ -133,6 +159,8 @@ class KaschuetzSensor(CoordinatorEntity[KaschuetzDataCoordinator], SensorEntity)
         if key == "com_error_text":
             com_error = data.get("ComError")
             return map_com_error_to_text(com_error if isinstance(com_error, int) else None)
+        if key == "spr_code":
+            return data.get("spr")
         if key == "error_state_code":
             return data.get("errorState")
         if key == "error_state_text":
@@ -152,6 +180,14 @@ class KaschuetzSensor(CoordinatorEntity[KaschuetzDataCoordinator], SensorEntity)
         if key == "optimizer_confidence":
             suggestion = self.coordinator.optimizer.calculate(dict(self._entry.options))
             return suggestion.get("confidence")
+        if key == "device_a_temp":
+            return data.get("aTemp")
+        if key == "device_sch_w":
+            return data.get("schW")
+        if key == "device_reg_w":
+            return data.get("regW")
+        if key == "device_reg_p":
+            return data.get("regP")
         return None
 
     @property
