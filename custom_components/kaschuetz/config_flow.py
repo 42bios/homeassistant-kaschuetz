@@ -93,7 +93,7 @@ class KaschuetzOptionsFlowHandler(config_entries.OptionsFlow):
 
     def __init__(self, config_entry: ConfigEntry) -> None:
         """Store the config_entry for reference."""
-        self.config_entry = config_entry
+        self._config_entry = config_entry
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """
@@ -109,10 +109,10 @@ class KaschuetzOptionsFlowHandler(config_entries.OptionsFlow):
                 ),
             )
 
-            host = self.config_entry.data[CONF_HOST]
+            host = self._config_entry.data[CONF_HOST]
             _LOGGER.info("User updated abbrand params: %s", user_input)
 
-            current_options = dict(self.config_entry.options)
+            current_options = dict(self._config_entry.options)
             abbrand_keys = ("aTemp", "schW", "regW", "regP")
             changed = any(
                 user_input.get(key) != current_options.get(key)
@@ -130,8 +130,8 @@ class KaschuetzOptionsFlowHandler(config_entries.OptionsFlow):
 
             return self.async_create_entry(title="", data=user_input)
 
-        current_options = dict(self.config_entry.options)
-        host = self.config_entry.data[CONF_HOST]
+        current_options = dict(self._config_entry.options)
+        host = self._config_entry.data[CONF_HOST]
 
         device_params = await _fetch_current_params(self.hass, host)
 
