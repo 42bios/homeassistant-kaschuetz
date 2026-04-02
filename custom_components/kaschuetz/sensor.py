@@ -25,7 +25,11 @@ SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         device_class=SensorDeviceClass.TEMPERATURE,
     ),
-    SensorEntityDescription(key="flap_position", translation_key="flap_position"),
+    SensorEntityDescription(
+        key="flap_position",
+        translation_key="flap_position",
+        native_unit_of_measurement=PERCENTAGE,
+    ),
     SensorEntityDescription(key="burn_status", translation_key="burn_status"),
     SensorEntityDescription(
         key="com_error_code",
