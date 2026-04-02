@@ -94,7 +94,7 @@ Home Assistant 2026 note:
 
 Preview:
 
-![Kaschuetz Abbrandverlauf Card](https://raw.githubusercontent.com/42bios/homeassistant-kaschuetz/main/.github/images/abbrandverlauf_card.png?v=20260403-1)
+![Kaschuetz Abbrandverlauf Card](https://raw.githubusercontent.com/42bios/homeassistant-kaschuetz/main/.github/images/abbrandverlauf_card.png?v=20260403-2)
 
 Quick setup:
 1. `Dashboard -> Edit -> Add Card -> Manual`
