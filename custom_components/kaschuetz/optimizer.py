@@ -15,6 +15,9 @@ from .const import (
     OPTIMIZER_MODE_AGGRESSIVE,
     OPTIMIZER_MODE_BALANCED,
     OPTIMIZER_MODE_CONSERVATIVE,
+    OPTIMIZER_PROFILE_EFFICIENCY,
+    OPTIMIZER_PROFILE_FAST_HEATUP,
+    OPTIMIZER_PROFILE_STABLE_BURN,
 )
 
 ACTIVE_STATES = {3, 4, 9}
@@ -99,6 +102,7 @@ class BurnOptimizer:
         flap_closed_ratio = self._closed_ratio(flaps)
         error_ratio = len(errors) / len(burn_samples)
         mode = str(current_options.get("optimizer_mode", OPTIMIZER_MODE_BALANCED))
+        profile = str(current_options.get("optimizer_profile", "default"))
 
         if mode == OPTIMIZER_MODE_CONSERVATIVE:
             temp_factor = 0.80
@@ -141,6 +145,19 @@ class BurnOptimizer:
             sch_w -= 10
             adjustments.append("fast_cooldown")
 
+        if profile == OPTIMIZER_PROFILE_FAST_HEATUP:
+            a_temp += 5
+            reg_w += 15
+            adjustments.append("profile_fast_heatup")
+        elif profile == OPTIMIZER_PROFILE_STABLE_BURN:
+            reg_p += 20
+            sch_w += 8
+            adjustments.append("profile_stable_burn")
+        elif profile == OPTIMIZER_PROFILE_EFFICIENCY:
+            a_temp -= 5
+            sch_w += 10
+            adjustments.append("profile_efficiency")
+
         a_temp = self._clamp_int(a_temp, 120, 320)
         sch_w = self._clamp_int(sch_w, 120, 700)
         reg_w = self._clamp_int(reg_w, 200, 1200)
@@ -178,6 +195,7 @@ class BurnOptimizer:
             "kpis": history_kpis,
             "adjustments": adjustments,
             "optimizer_mode": mode,
+            "optimizer_profile": profile,
         }
 
     def _extract_cycles(self) -> list[dict[str, float]]:
@@ -219,17 +237,64 @@ class BurnOptimizer:
         max_points = max(1, int(max_points))
         temp_tail = self._history_temp_arr[-max_points:]
         flap_tail = self._history_flap_arr[-max_points:]
+        recent_cycle_series = self._extract_cycle_series(max_cycles=6, max_points=max_points)
         payload: dict[str, Any] = {
             "time_s": self._history_time_s,
             "sample_step_s": HISTORY_SAMPLE_STEP_SECONDS,
             "points": len(temp_tail),
             "kpis": self.latest_history_kpis(),
             "recent_cycles": self._extract_cycles()[-10:],
+            "recent_cycle_series": recent_cycle_series,
         }
         if include_arrays:
             payload["TempArr"] = [round(value, 2) for value in temp_tail]
             payload["KlappeArr"] = flap_tail
         return payload
+
+    def _extract_cycle_series(
+        self, max_cycles: int = 6, max_points: int = 240
+    ) -> list[dict[str, Any]]:
+        """Extract per-cycle curve arrays from sampled active periods."""
+        cycles: list[list[BurnSample]] = []
+        current: list[BurnSample] = []
+        for sample in self._samples:
+            if sample.state in ACTIVE_STATES and sample.temp is not None:
+                current.append(sample)
+                continue
+            if current:
+                cycles.append(current)
+                current = []
+        if current:
+            cycles.append(current)
+
+        result: list[dict[str, Any]] = []
+        for idx, cycle in enumerate(cycles[-max_cycles:], start=1):
+            temps = [s.temp for s in cycle if s.temp is not None]
+            flaps = [s.flap for s in cycle if s.flap is not None]
+            if len(temps) < 3:
+                continue
+            points = min(max_points, len(temps))
+            temps_tail = temps[-points:]
+            flaps_tail = flaps[-points:] if flaps else []
+            peak = max(temps_tail)
+            peak_idx = temps_tail.index(peak)
+            result.append(
+                {
+                    "cycle_index": idx,
+                    "points": points,
+                    "TempArr": [round(v, 2) for v in temps_tail],
+                    "KlappeArr": flaps_tail,
+                    "time_offset_s": [i * HISTORY_SAMPLE_STEP_SECONDS for i in range(points)],
+                    "kpis": {
+                        "time_to_peak_s": round(peak_idx * HISTORY_SAMPLE_STEP_SECONDS, 1),
+                        "peak_temp": round(peak, 1),
+                        "flap_oscillation": round(pstdev(flaps_tail), 3)
+                        if len(flaps_tail) > 1
+                        else 0.0,
+                    },
+                }
+            )
+        return result
 
     def _update_history(self, payload: dict[str, Any]) -> None:
         """Update TempArr/KlappeArr based history cache when provided."""

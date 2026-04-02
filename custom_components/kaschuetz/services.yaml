@@ -52,6 +52,46 @@ export_burn_history:
           step: 10
           mode: box
 
+export_burn_history_file:
+  name: Export Burn History File
+  description: Export burn history snapshot to /config/kaschuetz_exports as JSON or CSV.
+  fields:
+    entry_id:
+      name: Entry ID
+      description: Optional config entry id to export history for only one Kaschuetz device.
+      required: false
+      example: "abcd1234efgh5678"
+      selector:
+        text:
+    include_arrays:
+      name: Include arrays
+      description: Include TempArr and KlappeArr arrays in export payload/file.
+      required: false
+      default: true
+      selector:
+        boolean:
+    max_points:
+      name: Max points
+      description: Maximum history points to include from the tail of arrays.
+      required: false
+      default: 240
+      selector:
+        number:
+          min: 20
+          max: 1000
+          step: 10
+          mode: box
+    format:
+      name: File format
+      description: Output format for exported file.
+      required: false
+      default: json
+      selector:
+        select:
+          options:
+            - json
+            - csv
+
 apply_optimization:
   name: Apply Optimization
   description: Apply suggested burn parameters to integration options and optionally write them to the device. Works only when experimental auto optimization is enabled in integration options.

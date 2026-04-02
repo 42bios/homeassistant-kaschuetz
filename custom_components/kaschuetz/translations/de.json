@@ -25,6 +25,7 @@
           "regP": "Regelperiode",
           "update_interval": "Aktualisierungsintervall (Sekunden)",
           "optimizer_mode": "Optimierungsmodus",
+          "optimizer_profile": "Optimierungsprofil",
           "experimental_auto_optimize": "Experimentelle Auto-Optimierung aktivieren"
         }
       }
@@ -89,6 +90,17 @@
           "spr_code_7": "SPR Code 7",
           "spr_code_8": "SPR Code 8",
           "spr_code_9": "SPR Code 9",
+          "spr_code_10": "SPR Code 10",
+          "spr_code_11": "SPR Code 11",
+          "spr_code_12": "SPR Code 12",
+          "spr_code_13": "SPR Code 13",
+          "spr_code_14": "SPR Code 14",
+          "spr_code_15": "SPR Code 15",
+          "spr_code_16": "SPR Code 16",
+          "spr_code_17": "SPR Code 17",
+          "spr_code_18": "SPR Code 18",
+          "spr_code_19": "SPR Code 19",
+          "spr_code_20": "SPR Code 20",
           "unknown": "Unbekannt"
         }
       },
@@ -254,6 +266,28 @@
         "max_points": {
           "name": "Maximale Punkte",
           "description": "Maximale Anzahl an Verlaufspunkten aus dem Ende der Arrays."
+        }
+      }
+    },
+    "export_burn_history_file": {
+      "name": "Abbrandverlauf als Datei exportieren",
+      "description": "Exportiert den Abbrandverlauf nach /config/kaschuetz_exports als JSON oder CSV.",
+      "fields": {
+        "entry_id": {
+          "name": "Entry-ID",
+          "description": "Optionale Config-Entry-ID, um nur für ein Kaschuetz-Gerät zu exportieren."
+        },
+        "include_arrays": {
+          "name": "Arrays inkludieren",
+          "description": "TempArr und KlappeArr in den Export aufnehmen."
+        },
+        "max_points": {
+          "name": "Maximale Punkte",
+          "description": "Maximale Anzahl an Verlaufspunkten aus dem Ende der Arrays."
+        },
+        "format": {
+          "name": "Dateiformat",
+          "description": "Ausgabeformat für die Exportdatei."
         }
       }
     },

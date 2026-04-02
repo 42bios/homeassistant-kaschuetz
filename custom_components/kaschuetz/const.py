@@ -9,6 +9,7 @@ CONF_HOST: Final = "host"
 CONF_SEASON_ENTITY: Final = "season_entity"
 CONF_UPDATE_INTERVAL: Final = "update_interval"
 CONF_OPTIMIZER_MODE: Final = "optimizer_mode"
+CONF_OPTIMIZER_PROFILE: Final = "optimizer_profile"
 CONF_EXPERIMENTAL_AUTO_OPTIMIZE: Final = "experimental_auto_optimize"
 
 DEFAULT_UPDATE_INTERVAL: Final = 30  # default poll interval (seconds)
@@ -19,6 +20,7 @@ DEFAULT_EXPERIMENTAL_AUTO_OPTIMIZE: Final = False
 SERVICE_CALCULATE_OPTIMIZATION: Final = "calculate_optimization"
 SERVICE_PREVIEW_ONLY: Final = "preview_only"
 SERVICE_EXPORT_BURN_HISTORY: Final = "export_burn_history"
+SERVICE_EXPORT_BURN_HISTORY_FILE: Final = "export_burn_history_file"
 SERVICE_APPLY_OPTIMIZATION: Final = "apply_optimization"
 SERVICE_RESET_OPTIMIZATION: Final = "reset_optimization_data"
 SERVICE_OPTIMIZE_AND_APPLY: Final = "optimize_and_apply"
@@ -49,4 +51,15 @@ OPTIMIZER_MODES: Final = [
     OPTIMIZER_MODE_CONSERVATIVE,
     OPTIMIZER_MODE_BALANCED,
     OPTIMIZER_MODE_AGGRESSIVE,
+]
+
+OPTIMIZER_PROFILE_DEFAULT: Final = "default"
+OPTIMIZER_PROFILE_FAST_HEATUP: Final = "fast_heatup"
+OPTIMIZER_PROFILE_STABLE_BURN: Final = "stable_burn"
+OPTIMIZER_PROFILE_EFFICIENCY: Final = "efficiency"
+OPTIMIZER_PROFILES: Final = [
+    OPTIMIZER_PROFILE_DEFAULT,
+    OPTIMIZER_PROFILE_FAST_HEATUP,
+    OPTIMIZER_PROFILE_STABLE_BURN,
+    OPTIMIZER_PROFILE_EFFICIENCY,
 ]

@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+import csv
+import json
 import logging
+from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 import voluptuous as vol
@@ -32,6 +36,7 @@ from .const import (
     SERVICE_APPLY_OPTIMIZATION,
     SERVICE_CALCULATE_OPTIMIZATION,
     SERVICE_EXPORT_BURN_HISTORY,
+    SERVICE_EXPORT_BURN_HISTORY_FILE,
     SERVICE_OPTIMIZE_AND_APPLY,
     SERVICE_PREVIEW_ONLY,
     SERVICE_RESET_OPTIMIZATION,
@@ -59,6 +64,14 @@ EXPORT_HISTORY_SCHEMA = vol.Schema(
         vol.Optional("entry_id"): cv.string,
         vol.Optional("include_arrays", default=True): cv.boolean,
         vol.Optional("max_points", default=240): vol.All(vol.Coerce(int), vol.Range(min=20, max=1000)),
+    }
+)
+EXPORT_HISTORY_FILE_SCHEMA = vol.Schema(
+    {
+        vol.Optional("entry_id"): cv.string,
+        vol.Optional("include_arrays", default=True): cv.boolean,
+        vol.Optional("max_points", default=240): vol.All(vol.Coerce(int), vol.Range(min=20, max=1000)),
+        vol.Optional("format", default="json"): vol.In(["json", "csv"]),
     }
 )
 
@@ -124,6 +137,7 @@ def _suggestion_preview_text(entry: ConfigEntry, suggestion: dict[str, Any]) -> 
         f"Cycle stats: {suggestion.get('cycle_stats')}\n"
         f"KPIs: {suggestion.get('kpis')}\n"
         f"Adjustments: {suggestion.get('adjustments')}\n"
+        f"Profile: {suggestion.get('optimizer_profile')}\n"
         f"Note: {suggestion.get('note', '-')}"
     )
 
@@ -275,6 +289,51 @@ async def _async_setup_services(hass: HomeAssistant) -> None:
             notification_id="kaschuetz_export_burn_history",
         )
 
+    async def _handle_export_burn_history_file(call: ServiceCall) -> None:
+        requested_entry_id = call.data.get("entry_id")
+        include_arrays = bool(call.data.get("include_arrays", True))
+        max_points = int(call.data.get("max_points", 240))
+        export_format = str(call.data.get("format", "json")).lower()
+        export_dir = Path(hass.config.path("kaschuetz_exports"))
+        export_dir.mkdir(parents=True, exist_ok=True)
+        lines: list[str] = []
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        for entry in _find_entries(hass, requested_entry_id):
+            runtime = hass.data[DOMAIN].get(entry.entry_id)
+            if not runtime:
+                continue
+            optimizer: BurnOptimizer = runtime[RUNTIME_OPTIMIZER]
+            snapshot = optimizer.history_snapshot(max_points=max_points, include_arrays=include_arrays)
+
+            if export_format == "csv":
+                path = export_dir / f"{DOMAIN}_{entry.entry_id}_{timestamp}.csv"
+                temp_arr = snapshot.get("TempArr", []) if include_arrays else []
+                flap_arr = snapshot.get("KlappeArr", []) if include_arrays else []
+                with path.open("w", newline="", encoding="utf-8") as f:
+                    writer = csv.writer(f)
+                    writer.writerow(["index", "time_offset_s", "temp_c", "flap"])
+                    for idx, temp in enumerate(temp_arr):
+                        flap = flap_arr[idx] if idx < len(flap_arr) else None
+                        writer.writerow([idx, idx * int(snapshot.get("sample_step_s", 8)), temp, flap])
+            else:
+                path = export_dir / f"{DOMAIN}_{entry.entry_id}_{timestamp}.json"
+                path.write_text(json.dumps(snapshot, ensure_ascii=False, indent=2), encoding="utf-8")
+
+            lines.append(f"Entry {entry.entry_id}: exported to {path}")
+
+        if not lines:
+            lines.append("No matching Kaschuetz config entry found.")
+
+        message = "\n".join(lines)
+        _LOGGER.info("Kaschuetz burn history file export result:\n%s", message)
+        persistent_notification.async_create(
+            hass,
+            message,
+            title="Kaschuetz Burn History File Export",
+            notification_id="kaschuetz_export_burn_history_file",
+        )
+
     async def _handle_optimize_and_apply(call: ServiceCall) -> None:
         await _handle_apply_optimization(call)
 
@@ -331,6 +390,13 @@ async def _async_setup_services(hass: HomeAssistant) -> None:
         SERVICE_EXPORT_BURN_HISTORY,
         _handle_export_burn_history,
         schema=EXPORT_HISTORY_SCHEMA,
+    )
+    async_register_admin_service(
+        hass,
+        DOMAIN,
+        SERVICE_EXPORT_BURN_HISTORY_FILE,
+        _handle_export_burn_history_file,
+        schema=EXPORT_HISTORY_FILE_SCHEMA,
     )
     async_register_admin_service(
         hass,
@@ -399,6 +465,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             hass.services.async_remove(DOMAIN, SERVICE_PREVIEW_ONLY)
             hass.services.async_remove(DOMAIN, SERVICE_APPLY_OPTIMIZATION)
             hass.services.async_remove(DOMAIN, SERVICE_EXPORT_BURN_HISTORY)
+            hass.services.async_remove(DOMAIN, SERVICE_EXPORT_BURN_HISTORY_FILE)
             hass.services.async_remove(DOMAIN, SERVICE_OPTIMIZE_AND_APPLY)
             hass.services.async_remove(DOMAIN, SERVICE_RESET_OPTIMIZATION)
             hass.data[DOMAIN]["service_registered"] = False

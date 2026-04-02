@@ -10,10 +10,10 @@ Home Assistant custom integration for Kaschuetz oven controllers with adaptive b
 
 ## Highlights
 - UI config flow (`Settings -> Devices & Services`)
-- Local polling (`rqType=1`) with connection quality metrics
+- Local polling (`rqType=5`, fallback `rqType=1`) with connection quality metrics
 - Optional season lock (`season_entity = summer` skips polling)
 - Writable burn parameters (`aTemp`, `schW`, `regW`, `regP`)
-- Optimizer with cycle detection, confidence scoring, persistence
+- Optimizer with cycle detection, KPI scoring, profile tuning, persistence
 - Diagnostics endpoint for faster issue analysis
 
 ## HACS Installation (Recommended)
@@ -50,6 +50,7 @@ Optional:
 - Consecutive Failures
 - Last Successful Poll
 - Optimizer Samples / Cycles / Confidence
+- History/KPI diagnostics (`time_to_peak`, `peak_temp`, `overshoot`, cooldown, flap oscillation)
 
 ### Binary Sensor
 - Door (on when `state == 7`)
@@ -72,6 +73,9 @@ Optional:
 
 ## Services
 - `kaschuetz.calculate_optimization`
+- `kaschuetz.preview_only` (safe recommendation preview)
+- `kaschuetz.export_burn_history` (event + notification export)
+- `kaschuetz.export_burn_history_file` (JSON/CSV file export)
 - `kaschuetz.apply_optimization` (`write_to_device`, `min_confidence`)
 - `kaschuetz.optimize_and_apply` (shortcut with confidence gate)
 - `kaschuetz.reset_optimization_data`
@@ -106,7 +110,7 @@ pytest -q
 ```
 
 ## Releases
-- Create and push a semantic tag, for example `v1.3.1`.
+- Create and push a semantic tag, for example `v1.4.0`.
 - The `Release` workflow will automatically publish a GitHub Release.
 - Release notes are auto-generated and grouped via `.github/release.yml`.
 

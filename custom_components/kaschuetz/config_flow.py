@@ -28,6 +28,7 @@ from .const import (
     CONF_EXPERIMENTAL_AUTO_OPTIMIZE,
     CONF_HOST,
     CONF_OPTIMIZER_MODE,
+    CONF_OPTIMIZER_PROFILE,
     CONF_SEASON_ENTITY,
     CONF_UPDATE_INTERVAL,
     DEFAULT_A_TEMP,
@@ -42,6 +43,8 @@ from .const import (
     MIN_UPDATE_INTERVAL,
     OPTIMIZER_MODE_BALANCED,
     OPTIMIZER_MODES,
+    OPTIMIZER_PROFILE_DEFAULT,
+    OPTIMIZER_PROFILES,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -158,6 +161,9 @@ class KaschuetzOptionsFlowHandler(config_entries.OptionsFlow):
         def_optimizer_mode = current_options.get(
             CONF_OPTIMIZER_MODE, OPTIMIZER_MODE_BALANCED
         )
+        def_optimizer_profile = current_options.get(
+            CONF_OPTIMIZER_PROFILE, OPTIMIZER_PROFILE_DEFAULT
+        )
         def_experimental_auto_optimize = bool(
             current_options.get(
                 CONF_EXPERIMENTAL_AUTO_OPTIMIZE, DEFAULT_EXPERIMENTAL_AUTO_OPTIMIZE
@@ -165,6 +171,8 @@ class KaschuetzOptionsFlowHandler(config_entries.OptionsFlow):
         )
         if def_optimizer_mode not in OPTIMIZER_MODES:
             def_optimizer_mode = OPTIMIZER_MODE_BALANCED
+        if def_optimizer_profile not in OPTIMIZER_PROFILES:
+            def_optimizer_profile = OPTIMIZER_PROFILE_DEFAULT
 
         schema = vol.Schema({
             vol.Optional("aTemp", default=def_aTemp): vol.Coerce(int),
@@ -177,6 +185,9 @@ class KaschuetzOptionsFlowHandler(config_entries.OptionsFlow):
             ),
             vol.Optional(CONF_OPTIMIZER_MODE, default=def_optimizer_mode): vol.In(
                 OPTIMIZER_MODES
+            ),
+            vol.Optional(CONF_OPTIMIZER_PROFILE, default=def_optimizer_profile): vol.In(
+                OPTIMIZER_PROFILES
             ),
             vol.Optional(
                 CONF_EXPERIMENTAL_AUTO_OPTIMIZE,
