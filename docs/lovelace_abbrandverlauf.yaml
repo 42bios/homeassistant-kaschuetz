@@ -53,7 +53,6 @@ series:
     type: area
     color: '#d18a1d'
     opacity: 0.35
-    transform: "return x * 10;"
 
 ###############################################################################
 # Option B: Home Assistant Core only (no HACS frontend card required)

@@ -39,6 +39,9 @@
       "flap_position": {
         "name": "Klappenposition"
       },
+      "flap_position_raw": {
+        "name": "Klappenposition Rohwert (0-7)"
+      },
       "burn_status": {
         "name": "Abbrandstatus",
         "state": {

@@ -30,6 +30,11 @@ SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         translation_key="flap_position",
         native_unit_of_measurement=PERCENTAGE,
     ),
+    SensorEntityDescription(
+        key="flap_position_raw",
+        translation_key="flap_position_raw",
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
     SensorEntityDescription(key="burn_status", translation_key="burn_status"),
     SensorEntityDescription(
         key="com_error_code",
@@ -192,6 +197,14 @@ class KaschuetzSensor(CoordinatorEntity[KaschuetzDataCoordinator], SensorEntity)
         if key == "temperature":
             return data.get("Temp")
         if key == "flap_position":
+            raw_flap = data.get("Klappe")
+            if isinstance(raw_flap, int):
+                if 0 <= raw_flap <= 7:
+                    return round((raw_flap / 7) * 100)
+                if 0 <= raw_flap <= 100:
+                    return raw_flap
+            return None
+        if key == "flap_position_raw":
             return data.get("Klappe")
         if key == "burn_status":
             state = data.get("state")

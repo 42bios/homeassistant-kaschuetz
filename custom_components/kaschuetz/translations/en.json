@@ -39,6 +39,9 @@
       "flap_position": {
         "name": "Flap Position"
       },
+      "flap_position_raw": {
+        "name": "Flap Position Raw (0-7)"
+      },
       "burn_status": {
         "name": "Burn Status",
         "state": {
