@@ -1,0 +1,69 @@
+# Kaschuetz Abbrandverlauf Card
+#
+# Replace entity ids if your ids differ.
+# Example ids:
+# - sensor.kaschuetz_oven_temperature
+# - sensor.kaschuetz_oven_flap_position
+
+###############################################################################
+# Option A (Recommended): ApexCharts style card (close to original controller UI)
+# Requirement: install "ApexCharts Card" via HACS (Frontend)
+###############################################################################
+type: custom:apexcharts-card
+header:
+  show: true
+  title: Abbrandverlauf
+  show_states: true
+  colorize_states: true
+apex_config:
+  chart:
+    height: 320
+  grid:
+    borderColor: '#89a654'
+  stroke:
+    width: 3
+  legend:
+    show: true
+  yaxis:
+    - id: temp
+      min: 0
+      max: 1000
+      decimalsInFloat: 0
+      title:
+        text: Temperatur
+    - id: flap
+      opposite: true
+      min: 0
+      max: 100
+      decimalsInFloat: 0
+      title:
+        text: Klappe %
+graph_span: 2h
+span:
+  start: minute
+series:
+  - entity: sensor.kaschuetz_oven_temperature
+    name: Temperatur
+    yaxis_id: temp
+    type: line
+    color: '#f0d36b'
+  - entity: sensor.kaschuetz_oven_flap_position
+    name: Klappenposition
+    yaxis_id: flap
+    type: area
+    color: '#d18a1d'
+    opacity: 0.35
+    transform: "return x * 10;"
+
+###############################################################################
+# Option B: Home Assistant Core only (no HACS frontend card required)
+###############################################################################
+# type: history-graph
+# title: Abbrandverlauf
+# hours_to_show: 2
+# refresh_interval: 0
+# entities:
+#   - entity: sensor.kaschuetz_oven_temperature
+#     name: Temperatur (°C)
+#   - entity: sensor.kaschuetz_oven_flap_position
+#     name: Klappenposition

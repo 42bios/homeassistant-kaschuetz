@@ -84,6 +84,18 @@ Home Assistant 2026 note:
 - Use `Developer Tools -> Actions` (instead of the old Services tab)
 - Search for `kaschuetz.*`
 
+## Lovelace Graph Card (Abbrandverlauf)
+- Ready-to-use YAML: `docs/lovelace_abbrandverlauf.yaml`
+- Recommended: `ApexCharts Card` (HACS Frontend) for the "original controller" graph look.
+- Fallback included: Core `history-graph` version (no frontend add-on needed).
+
+Quick setup:
+1. `Dashboard -> Edit -> Add Card -> Manual`
+2. Paste the YAML from `docs/lovelace_abbrandverlauf.yaml`
+3. Adjust entity ids if needed:
+- `sensor.kaschuetz_oven_temperature`
+- `sensor.kaschuetz_oven_flap_position`
+
 ## Optimization Model
 - Learns from observed burn samples during normal polling
 - Detects coarse burn cycles via active/inactive transitions
