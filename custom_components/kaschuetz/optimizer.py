@@ -22,6 +22,8 @@ from .const import (
 
 ACTIVE_STATES = {3, 4, 9}
 HISTORY_SAMPLE_STEP_SECONDS = 8
+MIN_CYCLE_POINTS = 8
+MIN_CYCLE_DELTA_TEMP = 20.0
 
 
 @dataclass(slots=True)
@@ -80,6 +82,13 @@ class BurnOptimizer:
         history_kpis = self.latest_history_kpis()
 
         if len(burn_samples) < 30:
+            safety = self._assess_safety(
+                confidence="low",
+                error_ratio=0.0,
+                temp_spread=0.0,
+                adjustments=[],
+                history_kpis=history_kpis,
+            )
             return {
                 "aTemp": self._default_from_options(current_options, "aTemp", DEFAULT_A_TEMP),
                 "schW": self._default_from_options(current_options, "schW", DEFAULT_SCHW),
@@ -90,6 +99,7 @@ class BurnOptimizer:
                 "samples_used": len(burn_samples),
                 "cycles_used": len(cycles),
                 "kpis": history_kpis,
+                "safety": safety,
             }
 
         temps = [s.temp for s in burn_samples if s.temp is not None]
@@ -172,6 +182,13 @@ class BurnOptimizer:
             confidence = "medium"
         else:
             confidence = "low"
+        safety = self._assess_safety(
+            confidence=confidence,
+            error_ratio=error_ratio,
+            temp_spread=temp_spread,
+            adjustments=adjustments,
+            history_kpis=history_kpis,
+        )
 
         return {
             "aTemp": a_temp,
@@ -196,27 +213,15 @@ class BurnOptimizer:
             "adjustments": adjustments,
             "optimizer_mode": mode,
             "optimizer_profile": profile,
+            "safety": safety,
         }
 
     def _extract_cycles(self) -> list[dict[str, float]]:
         """Extract coarse burn cycles based on active/inactive transitions."""
-        cycles: list[list[BurnSample]] = []
-        current: list[BurnSample] = []
-
-        for sample in self._samples:
-            if sample.state in ACTIVE_STATES and sample.temp is not None:
-                current.append(sample)
-                continue
-            if current:
-                cycles.append(current)
-                current = []
-        if current:
-            cycles.append(current)
-
         summary: list[dict[str, float]] = []
-        for cycle in cycles:
+        for cycle in self._iter_active_cycles():
             temps = [s.temp for s in cycle if s.temp is not None]
-            if len(temps) < 5:
+            if len(temps) < MIN_CYCLE_POINTS:
                 continue
             spread = pstdev(temps) if len(temps) > 1 else 0.0
             summary.append(
@@ -255,18 +260,7 @@ class BurnOptimizer:
         self, max_cycles: int = 6, max_points: int = 240
     ) -> list[dict[str, Any]]:
         """Extract per-cycle curve arrays from sampled active periods."""
-        cycles: list[list[BurnSample]] = []
-        current: list[BurnSample] = []
-        for sample in self._samples:
-            if sample.state in ACTIVE_STATES and sample.temp is not None:
-                current.append(sample)
-                continue
-            if current:
-                cycles.append(current)
-                current = []
-        if current:
-            cycles.append(current)
-
+        cycles = self._iter_active_cycles()
         result: list[dict[str, Any]] = []
         for idx, cycle in enumerate(cycles[-max_cycles:], start=1):
             temps = [s.temp for s in cycle if s.temp is not None]
@@ -296,6 +290,32 @@ class BurnOptimizer:
             )
         return result
 
+    def _iter_active_cycles(self) -> list[list[BurnSample]]:
+        """Split samples into robust active burn cycles."""
+        cycles: list[list[BurnSample]] = []
+        current: list[BurnSample] = []
+        for sample in self._samples:
+            if sample.state in ACTIVE_STATES and sample.temp is not None:
+                current.append(sample)
+                continue
+            if current:
+                self._append_cycle_if_valid(cycles, current)
+                current = []
+        if current:
+            self._append_cycle_if_valid(cycles, current)
+        return cycles
+
+    def _append_cycle_if_valid(
+        self, cycles: list[list[BurnSample]], cycle: list[BurnSample]
+    ) -> None:
+        """Append cycle when it has enough points and thermal movement."""
+        temps = [s.temp for s in cycle if s.temp is not None]
+        if len(temps) < MIN_CYCLE_POINTS:
+            return
+        if (max(temps) - min(temps)) < MIN_CYCLE_DELTA_TEMP:
+            return
+        cycles.append(cycle)
+
     def _update_history(self, payload: dict[str, Any]) -> None:
         """Update TempArr/KlappeArr based history cache when provided."""
         raw_temp = payload.get("TempArr")
@@ -311,12 +331,14 @@ class BurnOptimizer:
         if time_s is not None and self._last_history_time_s_processed == time_s:
             return
 
-        self._history_temp_arr = temp_arr
+        self._history_temp_arr = self._smooth_temp_outliers(temp_arr)
         self._history_flap_arr = flap_arr
         self._history_time_s = time_s
         self._history_setpoint = setpoint
         self._last_history_time_s_processed = time_s
-        self._latest_history_kpis = self._compute_history_kpis(temp_arr, flap_arr, setpoint)
+        self._latest_history_kpis = self._compute_history_kpis(
+            self._history_temp_arr, flap_arr, setpoint
+        )
 
     @staticmethod
     def _compute_history_kpis(
@@ -349,6 +371,61 @@ class BurnOptimizer:
             "cooldown_rate_c_per_min": round(cooldown_rate, 2),
             "flap_oscillation": round(flap_oscillation, 3),
         }
+
+    @staticmethod
+    def _smooth_temp_outliers(temp_arr: list[float]) -> list[float]:
+        """Suppress implausible jump spikes in history temperature array."""
+        if len(temp_arr) < 3:
+            return temp_arr
+        cleaned = list(temp_arr)
+        for idx in range(1, len(cleaned) - 1):
+            prev_v = cleaned[idx - 1]
+            cur_v = cleaned[idx]
+            next_v = cleaned[idx + 1]
+            if abs(cur_v - prev_v) > 85 and abs(cur_v - next_v) > 85:
+                cleaned[idx] = round((prev_v + next_v) / 2.0, 2)
+        return cleaned
+
+    @staticmethod
+    def _assess_safety(
+        confidence: str,
+        error_ratio: float,
+        temp_spread: float,
+        adjustments: list[str],
+        history_kpis: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Return a safety gate object for recommendation handling."""
+        overshoot = BurnOptimizer._to_float(history_kpis.get("overshoot")) or 0.0
+        flap_osc = BurnOptimizer._to_float(history_kpis.get("flap_oscillation")) or 0.0
+        reasons: list[str] = []
+
+        if error_ratio > 0.25:
+            reasons.append("high_error_ratio")
+        if overshoot > 120:
+            reasons.append("extreme_overshoot")
+        if flap_osc > 3.2:
+            reasons.append("unstable_flap")
+
+        if reasons:
+            return {"level": "unsafe", "reasons": reasons}
+
+        caution = False
+        if confidence == "low":
+            reasons.append("low_confidence")
+            caution = True
+        if overshoot > 70:
+            reasons.append("overshoot_high")
+            caution = True
+        if temp_spread > 80:
+            reasons.append("temperature_spread_high")
+            caution = True
+        if len(adjustments) > 4:
+            reasons.append("many_adjustments")
+            caution = True
+
+        if caution:
+            return {"level": "caution", "reasons": reasons}
+        return {"level": "safe", "reasons": ["within_expected_bounds"]}
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize optimizer state for persistence."""

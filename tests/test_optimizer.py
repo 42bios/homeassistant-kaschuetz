@@ -9,6 +9,7 @@ def test_optimizer_low_confidence_with_few_samples() -> None:
     result = optimizer.calculate({})
     assert result["confidence"] == "low"
     assert result["samples_used"] == 10
+    assert result["safety"]["level"] == "caution"
 
 
 def test_optimizer_cycle_detection_improves_confidence() -> None:
@@ -66,3 +67,21 @@ def test_history_snapshot_includes_arrays_and_kpis() -> None:
     assert snapshot["TempArr"] == [120.0, 150.0, 175.0]
     assert snapshot["KlappeArr"] == [4, 5, 6]
     assert "kpis" in snapshot
+
+
+def test_temp_outlier_is_filtered_in_history_kpis() -> None:
+    optimizer = BurnOptimizer()
+    optimizer.add_sample(
+        {
+            "state": 3,
+            "Temp": 180,
+            "Klappe": 5,
+            "ComError": 0,
+            "aTemp": 180,
+            "Time_s": 3000,
+            "TempArr": [100, 120, 999, 140, 160],
+            "KlappeArr": [3, 4, 5, 6, 7],
+        }
+    )
+    snapshot = optimizer.history_snapshot(max_points=5, include_arrays=True)
+    assert snapshot["TempArr"][2] != 999

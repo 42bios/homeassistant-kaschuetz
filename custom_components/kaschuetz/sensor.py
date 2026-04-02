@@ -258,6 +258,7 @@ class KaschuetzSensor(CoordinatorEntity[KaschuetzDataCoordinator], SensorEntity)
                 "stats": suggestion.get("stats"),
                 "cycle_stats": suggestion.get("cycle_stats"),
                 "kpis": suggestion.get("kpis"),
+                "safety": suggestion.get("safety"),
                 "adjustments": suggestion.get("adjustments"),
                 "optimizer_mode": suggestion.get("optimizer_mode"),
             }

@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.4.1 - 2026-04-02
+
+### Added
+- Recommendation safety assessment (`safe`, `caution`, `unsafe`) with reason list.
+- Safety details in optimization preview and optimization sensor attributes.
+
+### Changed
+- More robust cycle extraction with minimum point count and minimum temperature delta.
+- KPI preparation now filters implausible temperature outlier spikes in history arrays.
+
+### Fixed
+- Improved optimization stability for noisy WLAN history samples.
+
 ## 1.4.0 - 2026-04-02
 
 ### Added

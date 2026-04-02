@@ -136,6 +136,7 @@ def _suggestion_preview_text(entry: ConfigEntry, suggestion: dict[str, Any]) -> 
         f"Stats: {suggestion.get('stats')}\n"
         f"Cycle stats: {suggestion.get('cycle_stats')}\n"
         f"KPIs: {suggestion.get('kpis')}\n"
+        f"Safety: {suggestion.get('safety')}\n"
         f"Adjustments: {suggestion.get('adjustments')}\n"
         f"Profile: {suggestion.get('optimizer_profile')}\n"
         f"Note: {suggestion.get('note', '-')}"
