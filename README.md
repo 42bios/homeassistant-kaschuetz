@@ -15,6 +15,7 @@ Home Assistant custom integration for Kaschuetz oven controllers with adaptive b
 - Writable burn parameters (`aTemp`, `schW`, `regW`, `regP`)
 - Optimizer with cycle detection, KPI scoring, profile tuning, persistence
 - Diagnostics endpoint for faster issue analysis
+- Multilingual UI texts (`de` and `en`) for entities, states, and services
 
 ## HACS Installation (Recommended)
 [![Open your Home Assistant instance and open this repository in HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=42bios&repository=homeassistant-kaschuetz&category=integration)
@@ -86,8 +87,14 @@ Home Assistant 2026 note:
 
 ## Lovelace Graph Card (Abbrandverlauf)
 - Ready-to-use YAML: `docs/lovelace_abbrandverlauf.yaml`
-- Recommended: `ApexCharts Card` (HACS Frontend) for the "original controller" graph look.
-- Fallback included: Core `history-graph` version (no frontend add-on needed).
+- Requires `ApexCharts Card` (HACS Frontend)
+- Requires `Config Template Card` (HACS Frontend)
+- Dynamic multilingual title based on HA UI language (`de`/`en`)
+- Shows last `3h` in local time (`HH:mm`, no seconds)
+
+Preview:
+
+![Kaschuetz Abbrandverlauf Card](https://raw.githubusercontent.com/42bios/homeassistant-kaschuetz/main/.github/images/abbrandverlauf_card.png?v=20260403-1)
 
 Quick setup:
 1. `Dashboard -> Edit -> Add Card -> Manual`
