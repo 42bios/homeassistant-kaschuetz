@@ -1,7 +1,6 @@
 {
   "name": "Kaschuetz Oven Control",
   "country": "AT",
-  "domain": "kaschuetz",
   "homeassistant": "2025.1",
   "content_in_root": false,
   "render_readme": true,
