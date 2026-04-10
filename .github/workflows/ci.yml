@@ -1,0 +1,23 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Validate JSON files
+        run: |
+          python -m json.tool hacs.json > /dev/null
+          python -m json.tool custom_components/kaschuetz/manifest.json > /dev/null
+      - name: Compile integration
+        run: python -m compileall custom_components/kaschuetz

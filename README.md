@@ -1,5 +1,6 @@
 # Kaschuetz Oven Control
 
+[![CI](https://github.com/42bios/homeassistant-kaschuetz/actions/workflows/ci.yml/badge.svg)](https://github.com/42bios/homeassistant-kaschuetz/actions/workflows/ci.yml)
 [![HACS Custom](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://hacs.xyz/)
 [![Version](https://img.shields.io/github/v/release/42bios/homeassistant-kaschuetz)](https://github.com/42bios/homeassistant-kaschuetz/releases)
 
