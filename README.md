@@ -10,6 +10,8 @@ Home Assistant custom integration for Kaschuetz oven controllers with adaptive b
 
 <img src="https://raw.githubusercontent.com/42bios/homeassistant-kaschuetz/main/.github/images/hacs_preview.png?v=20260401-2" width="160" alt="Kaschuetz HACS Preview">
 
+> **Disclaimer:** This is an unofficial, community-maintained integration and is not affiliated with, endorsed by, or supported by Kaschuetz. All product names, logos, and brands are property of their respective owners and are used for identification purposes only.
+
 ## Highlights
 - UI config flow (`Settings -> Devices & Services`)
 - Local polling (`rqType=5`, fallback `rqType=1`) with connection quality metrics
