@@ -8,10 +8,10 @@ from statistics import mean, pstdev
 from typing import Any
 
 from .const import (
-    DEFAULT_A_TEMP,
-    DEFAULT_REGP,
-    DEFAULT_REGW,
-    DEFAULT_SCHW,
+    BURN_PARAM_KEYS,
+    BURN_STATES,
+    HISTORY_BUFFER_SIZE,
+    HISTORY_SAMPLE_STEP_SECONDS,
     OPTIMIZER_MODE_AGGRESSIVE,
     OPTIMIZER_MODE_BALANCED,
     OPTIMIZER_MODE_CONSERVATIVE,
@@ -19,9 +19,10 @@ from .const import (
     OPTIMIZER_PROFILE_FAST_HEATUP,
     OPTIMIZER_PROFILE_STABLE_BURN,
 )
+from .params import parse_param, snap_param
 
-ACTIVE_STATES = {3, 4, 9}
-HISTORY_SAMPLE_STEP_SECONDS = 8
+# "Searching maximum" and "burn control" are the states with an active fire.
+ACTIVE_STATES = BURN_STATES
 MIN_CYCLE_POINTS = 8
 MIN_CYCLE_DELTA_TEMP = 20.0
 
@@ -89,11 +90,9 @@ class BurnOptimizer:
                 adjustments=[],
                 history_kpis=history_kpis,
             )
+            # Not enough data: suggest keeping the current device values.
             return {
-                "aTemp": self._default_from_options(current_options, "aTemp", DEFAULT_A_TEMP),
-                "schW": self._default_from_options(current_options, "schW", DEFAULT_SCHW),
-                "regW": self._default_from_options(current_options, "regW", DEFAULT_REGW),
-                "regP": self._default_from_options(current_options, "regP", DEFAULT_REGP),
+                **{key: parse_param(current_options.get(key)) for key in BURN_PARAM_KEYS},
                 "confidence": "low",
                 "note": "Too few burn samples. Keep observing for better optimization.",
                 "samples_used": len(burn_samples),
@@ -128,10 +127,10 @@ class BurnOptimizer:
             error_factor = 240
 
         # Heuristic baseline: can later be replaced by trained model predictions.
-        a_temp = self._clamp_int(round(avg_temp * temp_factor), 120, 320)
-        sch_w = self._clamp_int(round(220 + (1.0 - flap_closed_ratio) * 320), 120, 700)
-        reg_w = self._clamp_int(round(450 + temp_spread * spread_factor), 200, 1200)
-        reg_p = self._clamp_int(round(160 + error_ratio * error_factor), 120, 600)
+        a_temp = round(avg_temp * temp_factor)
+        sch_w = round(220 + (1.0 - flap_closed_ratio) * 320)
+        reg_w = round(450 + temp_spread * spread_factor)
+        reg_p = round(160 + error_ratio * error_factor)
         adjustments: list[str] = []
 
         # Additional optimization informed by chart history KPIs.
@@ -168,10 +167,11 @@ class BurnOptimizer:
             sch_w += 10
             adjustments.append("profile_efficiency")
 
-        a_temp = self._clamp_int(a_temp, 120, 320)
-        sch_w = self._clamp_int(sch_w, 120, 700)
-        reg_w = self._clamp_int(reg_w, 200, 1200)
-        reg_p = self._clamp_int(reg_p, 120, 600)
+        # Only values the controller accepts (range and step of the web UI).
+        a_temp = snap_param("aTemp", a_temp)
+        sch_w = snap_param("schW", sch_w)
+        reg_w = snap_param("regW", reg_w)
+        reg_p = snap_param("regP", reg_p)
 
         stable_cycles = [cycle for cycle in cycles if cycle.get("peak_temp", 0) >= 120]
         cycle_quality = mean([cycle["stability"] for cycle in stable_cycles]) if stable_cycles else 0.0
@@ -327,6 +327,13 @@ class BurnOptimizer:
         flap_arr = self._to_int_list(raw_flap)
         if not temp_arr or not flap_arr or len(temp_arr) != len(flap_arr):
             return
+        # The device sends a ring buffer, newest value first. Time_s counts the
+        # seconds since the burn started, so only that many points are valid.
+        valid = len(temp_arr)
+        if time_s is not None:
+            valid = min(valid, time_s // HISTORY_SAMPLE_STEP_SECONDS + 1, HISTORY_BUFFER_SIZE)
+        temp_arr = list(reversed(temp_arr[:valid]))
+        flap_arr = list(reversed(flap_arr[:valid]))
 
         if time_s is not None and self._last_history_time_s_processed == time_s:
             return
@@ -336,9 +343,11 @@ class BurnOptimizer:
         self._history_time_s = time_s
         self._history_setpoint = setpoint
         self._last_history_time_s_processed = time_s
-        self._latest_history_kpis = self._compute_history_kpis(
-            self._history_temp_arr, flap_arr, setpoint
-        )
+        # Keep the KPIs of the last real burn while the oven is cold.
+        if max(temp_arr) - min(temp_arr) >= MIN_CYCLE_DELTA_TEMP:
+            self._latest_history_kpis = self._compute_history_kpis(
+                self._history_temp_arr, flap_arr, setpoint
+            )
 
     @staticmethod
     def _compute_history_kpis(
@@ -353,8 +362,7 @@ class BurnOptimizer:
         peak_temp = max(temp_arr)
         peak_idx = temp_arr.index(peak_temp)
         time_to_peak_s = peak_idx * HISTORY_SAMPLE_STEP_SECONDS
-        active_setpoint = setpoint if setpoint is not None else DEFAULT_A_TEMP
-        overshoot = peak_temp - active_setpoint
+        overshoot = peak_temp - setpoint if setpoint is not None else None
 
         tail_count = max(0, len(temp_arr) - peak_idx - 1)
         if tail_count > 0:
@@ -367,7 +375,7 @@ class BurnOptimizer:
         return {
             "time_to_peak_s": round(time_to_peak_s, 1),
             "peak_temp": round(peak_temp, 1),
-            "overshoot": round(overshoot, 1),
+            "overshoot": round(overshoot, 1) if overshoot is not None else None,
             "cooldown_rate_c_per_min": round(cooldown_rate, 2),
             "flap_oscillation": round(flap_oscillation, 3),
         }
@@ -517,17 +525,6 @@ class BurnOptimizer:
             if parsed is not None:
                 out.append(parsed)
         return out
-
-    @staticmethod
-    def _clamp_int(value: int, min_value: int, max_value: int) -> int:
-        return max(min_value, min(max_value, value))
-
-    @staticmethod
-    def _default_from_options(options: dict[str, Any], key: str, fallback: int) -> int:
-        try:
-            return int(options.get(key, fallback))
-        except (TypeError, ValueError):
-            return fallback
 
     @staticmethod
     def _closed_ratio(flaps: list[int]) -> float:

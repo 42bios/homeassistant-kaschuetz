@@ -11,13 +11,14 @@ from typing import Any
 
 import voluptuous as vol
 from homeassistant.components import persistent_notification
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.config_entries import ConfigEntry, ConfigEntryState
 from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.service import async_register_admin_service
 from homeassistant.helpers.storage import Store
 
-from .api import KaschuetzApiError, async_send_abbrand_params
 from .const import (
     BURN_PARAM_KEYS,
     CONF_EXPERIMENTAL_AUTO_OPTIMIZE,
@@ -36,25 +37,44 @@ from .const import (
     RUNTIME_SAVE_OPTIMIZER,
     SERVICE_APPLY_OPTIMIZATION,
     SERVICE_CALCULATE_OPTIMIZATION,
+    SERVICE_CANCEL_SAVE_PROCESS,
+    SERVICE_DISCARD_PENDING,
     SERVICE_EXPORT_BURN_HISTORY,
     SERVICE_EXPORT_BURN_HISTORY_FILE,
     SERVICE_OPTIMIZE_AND_APPLY,
     SERVICE_PREVIEW_ONLY,
     SERVICE_RESET_OPTIMIZATION,
+    SERVICE_START_SAVE_PROCESS,
 )
 from .coordinator import KaschuetzDataCoordinator
 from .optimizer import BurnOptimizer
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS = ["sensor", "binary_sensor", "number", "select", "button"]
+PLATFORMS = ["sensor", "binary_sensor", "number", "select", "button", "switch"]
+SERVICES = (
+    SERVICE_CALCULATE_OPTIMIZATION,
+    SERVICE_PREVIEW_ONLY,
+    SERVICE_APPLY_OPTIMIZATION,
+    SERVICE_EXPORT_BURN_HISTORY,
+    SERVICE_EXPORT_BURN_HISTORY_FILE,
+    SERVICE_OPTIMIZE_AND_APPLY,
+    SERVICE_RESET_OPTIMIZATION,
+    SERVICE_START_SAVE_PROCESS,
+    SERVICE_CANCEL_SAVE_PROCESS,
+    SERVICE_DISCARD_PENDING,
+)
+# Entities removed in 1.5.0; their values were not backed by the device protocol.
+OBSOLETE_ENTITY_KEYS = ("com_error_text", "spr_code")
 STORAGE_VERSION = 1
 
 ENTRY_SCHEMA = vol.Schema({vol.Optional("entry_id"): cv.string})
 APPLY_SCHEMA = vol.Schema(
     {
         vol.Optional("entry_id"): cv.string,
-        vol.Optional("write_to_device", default=False): cv.boolean,
+        vol.Optional("start_save", default=False): cv.boolean,
+        # Deprecated alias of start_save (parameters are never written directly).
+        vol.Optional("write_to_device"): cv.boolean,
         vol.Optional("min_confidence", default=CONFIDENCE_LOW): vol.In(
             [CONFIDENCE_LOW, CONFIDENCE_MEDIUM, CONFIDENCE_HIGH]
         ),
@@ -78,8 +98,13 @@ EXPORT_HISTORY_FILE_SCHEMA = vol.Schema(
 
 
 async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Reload integration when options are changed."""
-    await hass.config_entries.async_reload(entry.entry_id)
+    """Reload only when the poll interval changed; other options apply live."""
+    runtime = hass.data[DOMAIN].get(entry.entry_id)
+    interval = int(entry.options.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL))
+    if runtime is None or runtime.get(CONF_UPDATE_INTERVAL) != interval:
+        await hass.config_entries.async_reload(entry.entry_id)
+        return
+    runtime[RUNTIME_COORDINATOR].async_update_listeners()
 
 
 def _storage_key(entry_id: str) -> str:
@@ -104,25 +129,21 @@ def _find_entries(hass: HomeAssistant, entry_id: str | None) -> list[ConfigEntry
     return [entry for entry in entries if entry.entry_id == entry_id]
 
 
-def _safe_int(value: Any, fallback: int) -> int:
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return fallback
-
-
 def _suggestion_preview_text(
     entry: ConfigEntry, suggestion: dict[str, Any], current: dict[str, int] | None
 ) -> str:
-    proposed = {key: _safe_int(suggestion.get(key), 0) for key in BURN_PARAM_KEYS}
+    proposed = {key: suggestion.get(key) for key in BURN_PARAM_KEYS}
     if current is None:
-        delta: dict[str, int] | str = "unknown (device did not report current parameters)"
+        delta: dict[str, int | None] | str = "unknown (device did not report current parameters)"
     else:
-        delta = {key: proposed[key] - current[key] for key in BURN_PARAM_KEYS}
+        delta = {
+            key: None if proposed[key] is None else proposed[key] - current[key]
+            for key in BURN_PARAM_KEYS
+        }
 
     return (
         f"Entry: {entry.entry_id}\n"
-        f"Preview only: no parameters will be written.\n"
+        "Preview only: nothing is staged or written.\n"
         f"Samples: {suggestion.get('samples_used')}, Cycles: {suggestion.get('cycles_used')}\n"
         f"Confidence: {suggestion.get('confidence')}\n"
         f"Current (device): {current if current is not None else 'unknown'}\n"
@@ -169,21 +190,23 @@ def _experimental_auto_optimize_enabled(entry: ConfigEntry) -> bool:
 
 
 async def _apply_suggestion_to_entry(
-    hass: HomeAssistant,
     entry: ConfigEntry,
     coordinator: KaschuetzDataCoordinator,
     suggestion: dict[str, Any],
-    write_to_device: bool,
+    start_save: bool,
 ) -> str:
-    applied = {key: int(suggestion[key]) for key in BURN_PARAM_KEYS}
-
-    if write_to_device:
-        await async_send_abbrand_params(hass, entry.data[CONF_HOST], applied)
-        await coordinator.async_request_refresh()
-
-    new_options = {**dict(entry.options), **applied}
-    hass.config_entries.async_update_entry(entry, options=new_options)
-    return f"Entry {entry.entry_id}: applied {applied} (write_to_device={write_to_device})"
+    """Stage the suggested parameters and optionally start the save process."""
+    staged = coordinator.stage_params(suggestion)
+    if not staged:
+        return f"Entry {entry.entry_id}: nothing to stage (no suggested values)"
+    message = f"Entry {entry.entry_id}: staged {staged}"
+    if start_save:
+        try:
+            await coordinator.async_start_save()
+        except HomeAssistantError as err:
+            return f"{message}; save process not started ({err})"
+        message += "; save process started - open and close the filling door at the oven"
+    return message
 
 
 async def _async_setup_services(hass: HomeAssistant) -> None:
@@ -193,9 +216,8 @@ async def _async_setup_services(hass: HomeAssistant) -> None:
             runtime = hass.data[DOMAIN].get(entry.entry_id)
             if not runtime:
                 continue
-            optimizer: BurnOptimizer = runtime[RUNTIME_OPTIMIZER]
             coordinator: KaschuetzDataCoordinator = runtime[RUNTIME_COORDINATOR]
-            suggestion = optimizer.calculate(coordinator.optimizer_input(dict(entry.options)))
+            suggestion = coordinator.suggestion(dict(entry.options))
             messages.append(
                 _suggestion_preview_text(entry, suggestion, coordinator.device_burn_params())
             )
@@ -229,7 +251,7 @@ async def _async_setup_services(hass: HomeAssistant) -> None:
 
     async def _handle_apply_optimization(call: ServiceCall) -> None:
         requested_entry_id = call.data.get("entry_id")
-        write_to_device = bool(call.data.get("write_to_device", False))
+        start_save = bool(call.data.get("start_save", call.data.get("write_to_device", False)))
         min_confidence = str(call.data.get("min_confidence", CONFIDENCE_LOW))
         updates: list[str] = []
 
@@ -243,33 +265,22 @@ async def _async_setup_services(hass: HomeAssistant) -> None:
                 )
                 continue
 
-            optimizer: BurnOptimizer = runtime[RUNTIME_OPTIMIZER]
             coordinator: KaschuetzDataCoordinator = runtime[RUNTIME_COORDINATOR]
-            if write_to_device:
-                current = await coordinator.async_current_burn_params()
-                if current is None:
-                    updates.append(
-                        f"Entry {entry.entry_id}: skipped (device did not report current "
-                        "burn parameters; refusing to write)"
-                    )
-                    continue
-                suggestion = optimizer.calculate({**dict(entry.options), **current})
-            else:
-                suggestion = optimizer.calculate(coordinator.optimizer_input(dict(entry.options)))
+            if coordinator.device_burn_params() is None:
+                updates.append(
+                    f"Entry {entry.entry_id}: skipped (device did not report current parameters)"
+                )
+                continue
+            suggestion = coordinator.suggestion(dict(entry.options))
             if not _can_apply(suggestion, min_confidence):
                 updates.append(
                     f"Entry {entry.entry_id}: skipped (confidence={suggestion.get('confidence')} < {min_confidence})"
                 )
                 continue
 
-            try:
-                updates.append(
-                    await _apply_suggestion_to_entry(
-                        hass, entry, coordinator, suggestion, write_to_device
-                    )
-                )
-            except KaschuetzApiError as err:
-                updates.append(f"Entry {entry.entry_id}: device write failed ({err})")
+            updates.append(
+                await _apply_suggestion_to_entry(entry, coordinator, suggestion, start_save)
+            )
 
         if not updates:
             updates.append("No matching Kaschuetz config entry found.")
@@ -357,6 +368,30 @@ async def _async_setup_services(hass: HomeAssistant) -> None:
             notification_id="kaschuetz_export_burn_history_file",
         )
 
+    def _coordinators(call: ServiceCall) -> list[KaschuetzDataCoordinator]:
+        coordinators = [
+            hass.data[DOMAIN][entry.entry_id][RUNTIME_COORDINATOR]
+            for entry in _find_entries(hass, call.data.get("entry_id"))
+            if entry.entry_id in hass.data[DOMAIN]
+        ]
+        if not coordinators:
+            raise HomeAssistantError("No matching Kaschuetz config entry found")
+        return coordinators
+
+    async def _handle_start_save_process(call: ServiceCall) -> None:
+        for coordinator in _coordinators(call):
+            await coordinator.async_start_save()
+
+    async def _handle_cancel_save_process(call: ServiceCall) -> None:
+        for coordinator in _coordinators(call):
+            await coordinator.async_cancel_save()
+
+    async def _handle_discard_pending(call: ServiceCall) -> None:
+        for coordinator in _coordinators(call):
+            if coordinator.save_in_progress:
+                raise HomeAssistantError("Cannot discard changes while a save is running")
+            coordinator.discard_pending()
+
     async def _handle_optimize_and_apply(call: ServiceCall) -> None:
         await _handle_apply_optimization(call)
 
@@ -435,6 +470,21 @@ async def _async_setup_services(hass: HomeAssistant) -> None:
         _handle_reset_optimization,
         schema=ENTRY_SCHEMA,
     )
+    for service, handler in (
+        (SERVICE_START_SAVE_PROCESS, _handle_start_save_process),
+        (SERVICE_CANCEL_SAVE_PROCESS, _handle_cancel_save_process),
+        (SERVICE_DISCARD_PENDING, _handle_discard_pending),
+    ):
+        async_register_admin_service(hass, DOMAIN, service, handler, schema=ENTRY_SCHEMA)
+
+
+def _remove_obsolete_entities(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Remove entities of earlier versions that no longer exist."""
+    registry = er.async_get(hass)
+    for key in OBSOLETE_ENTITY_KEYS:
+        unique_id = f"kaschuetz_{key}_{entry.data[CONF_HOST]}"
+        if entity_id := registry.async_get_entity_id("sensor", DOMAIN, unique_id):
+            registry.async_remove(entity_id)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -451,11 +501,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     async def _persist_optimizer() -> None:
         await _save_optimizer(hass, entry.entry_id, optimizer)
 
+    _remove_obsolete_entities(hass, entry)
+
+    poll_interval = int(entry.options.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL))
     coordinator = KaschuetzDataCoordinator(
         hass=hass,
+        entry=entry,
         host=entry.data[CONF_HOST],
         season_entity=entry.data.get(CONF_SEASON_ENTITY),
-        poll_interval=int(entry.options.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)),
+        poll_interval=poll_interval,
         optimizer=optimizer,
         persist_callback=_persist_optimizer,
     )
@@ -466,6 +520,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         RUNTIME_OPTIMIZER: optimizer,
         RUNTIME_SAVE_OPTIMIZER: _persist_optimizer,
         RUNTIME_COORDINATOR: coordinator,
+        CONF_UPDATE_INTERVAL: poll_interval,
     }
 
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
@@ -482,14 +537,13 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if runtime and RUNTIME_OPTIMIZER in runtime:
             await _save_optimizer(hass, entry.entry_id, runtime[RUNTIME_OPTIMIZER])
 
-        loaded_entries = hass.config_entries.async_entries(DOMAIN)
-        if not loaded_entries:
-            hass.services.async_remove(DOMAIN, SERVICE_CALCULATE_OPTIMIZATION)
-            hass.services.async_remove(DOMAIN, SERVICE_PREVIEW_ONLY)
-            hass.services.async_remove(DOMAIN, SERVICE_APPLY_OPTIMIZATION)
-            hass.services.async_remove(DOMAIN, SERVICE_EXPORT_BURN_HISTORY)
-            hass.services.async_remove(DOMAIN, SERVICE_EXPORT_BURN_HISTORY_FILE)
-            hass.services.async_remove(DOMAIN, SERVICE_OPTIMIZE_AND_APPLY)
-            hass.services.async_remove(DOMAIN, SERVICE_RESET_OPTIMIZATION)
+        other_loaded = [
+            other
+            for other in hass.config_entries.async_entries(DOMAIN)
+            if other.entry_id != entry.entry_id and other.state is ConfigEntryState.LOADED
+        ]
+        if not other_loaded:
+            for service in SERVICES:
+                hass.services.async_remove(DOMAIN, service)
             hass.data[DOMAIN]["service_registered"] = False
     return unload_ok

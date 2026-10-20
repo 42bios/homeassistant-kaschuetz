@@ -2,160 +2,302 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from dataclasses import dataclass
+from typing import Any
+
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
     SensorEntityDescription,
+    SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import PERCENTAGE, EntityCategory, UnitOfTemperature
+from homeassistant.const import (
+    MATCH_ALL,
+    PERCENTAGE,
+    EntityCategory,
+    UnitOfTemperature,
+    UnitOfTime,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DEFAULT_NAME, DOMAIN, RUNTIME_COORDINATOR
+from .const import (
+    BURN_PARAM_SCALE,
+    DOMAIN,
+    RUNTIME_COORDINATOR,
+    SAVE_STATUSES,
+)
 from .coordinator import (
+    ERROR_STATE_LABELS,
+    LANGUAGE_LABELS,
+    STATE_LABELS,
     KaschuetzDataCoordinator,
-    map_com_error_to_text,
     map_error_state_to_text,
-    map_spr_to_text,
+    map_language,
     map_state_to_text,
 )
+from .entity import KaschuetzEntity
+from .params import parse_param
 
-SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
-    SensorEntityDescription(
+
+@dataclass(frozen=True, kw_only=True)
+class KaschuetzSensorDescription(SensorEntityDescription):
+    """Sensor description with a value function."""
+
+    value_fn: Callable[[KaschuetzSensor], Any]
+    attributes_fn: Callable[[KaschuetzSensor], dict[str, Any] | None] | None = None
+    unrecorded: bool = False
+
+
+def _data(sensor: KaschuetzSensor) -> dict[str, Any]:
+    return sensor.coordinator.data or {}
+
+
+def _flap_percent(sensor: KaschuetzSensor) -> int | None:
+    raw = _data(sensor).get("Klappe")
+    if isinstance(raw, int) and 0 <= raw <= 7:
+        return round((raw / 7) * 100)
+    return None
+
+
+def _device_param(key: str) -> Callable[[KaschuetzSensor], float | None]:
+    def _value(sensor: KaschuetzSensor) -> float | None:
+        raw = parse_param(_data(sensor).get(key))
+        return None if raw is None else raw / BURN_PARAM_SCALE[key]
+
+    return _value
+
+
+def _kpi(key: str) -> Callable[[KaschuetzSensor], Any]:
+    return lambda sensor: sensor.coordinator.optimizer.latest_history_kpis().get(key)
+
+
+def _suggestion_attributes(sensor: KaschuetzSensor) -> dict[str, Any]:
+    suggestion = sensor.suggestion()
+    return {
+        key: suggestion.get(key)
+        for key in (
+            "aTemp",
+            "schW",
+            "regW",
+            "regP",
+            "samples_used",
+            "cycles_used",
+            "stats",
+            "cycle_stats",
+            "kpis",
+            "safety",
+            "adjustments",
+            "optimizer_mode",
+            "optimizer_profile",
+        )
+    }
+
+
+def _save_attributes(sensor: KaschuetzSensor) -> dict[str, Any]:
+    coordinator = sensor.coordinator
+    pending = {
+        key: value / BURN_PARAM_SCALE[key] for key, value in coordinator.pending_params.items()
+    }
+    return {
+        "remaining_seconds": coordinator.save_remaining_seconds,
+        "message": coordinator.save_message,
+        "pending_parameters": pending,
+        "close_air_shutter": coordinator.close_air_shutter,
+        "last_result": coordinator.save_last_result,
+    }
+
+
+SENSOR_DESCRIPTIONS: tuple[KaschuetzSensorDescription, ...] = (
+    KaschuetzSensorDescription(
         key="temperature",
         translation_key="temperature",
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         device_class=SensorDeviceClass.TEMPERATURE,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda s: parse_param(_data(s).get("Temp")),
     ),
-    SensorEntityDescription(
+    KaschuetzSensorDescription(
         key="flap_position",
         translation_key="flap_position",
         native_unit_of_measurement=PERCENTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=_flap_percent,
     ),
-    SensorEntityDescription(
+    KaschuetzSensorDescription(
         key="flap_position_raw",
         translation_key="flap_position_raw",
         entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda s: _data(s).get("Klappe"),
     ),
-    SensorEntityDescription(key="burn_status", translation_key="burn_status"),
-    SensorEntityDescription(
-        key="com_error_code",
-        translation_key="com_error_code",
-        entity_category=EntityCategory.DIAGNOSTIC,
+    KaschuetzSensorDescription(
+        key="burn_status",
+        translation_key="burn_status",
+        device_class=SensorDeviceClass.ENUM,
+        options=list(STATE_LABELS.values()),
+        value_fn=lambda s: map_state_to_text(_data(s).get("state")),
     ),
-    SensorEntityDescription(
-        key="com_error_text",
-        translation_key="com_error_text",
-        entity_category=EntityCategory.DIAGNOSTIC,
+    KaschuetzSensorDescription(
+        key="error_state_text",
+        translation_key="error_state_text",
+        device_class=SensorDeviceClass.ENUM,
+        options=["none", *ERROR_STATE_LABELS.values(), "unknown"],
+        value_fn=lambda s: map_error_state_to_text(_data(s).get("errorState")) if s.coordinator.data else None,
     ),
-    SensorEntityDescription(
-        key="spr_code",
-        translation_key="spr_code",
-        entity_category=EntityCategory.DIAGNOSTIC,
-    ),
-    SensorEntityDescription(
-        key="spr_text",
-        translation_key="spr_text",
-        entity_category=EntityCategory.DIAGNOSTIC,
-    ),
-    SensorEntityDescription(
+    KaschuetzSensorDescription(
         key="error_state_code",
         translation_key="error_state_code",
         entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda s: _data(s).get("errorState"),
     ),
-    SensorEntityDescription(
-        key="error_state_text",
-        translation_key="error_state_text",
+    KaschuetzSensorDescription(
+        key="com_error_code",
+        translation_key="com_error_code",
         entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda s: _data(s).get("ComError"),
     ),
-    SensorEntityDescription(
+    KaschuetzSensorDescription(
+        key="spr_text",
+        translation_key="spr_text",
+        device_class=SensorDeviceClass.ENUM,
+        options=list(LANGUAGE_LABELS.values()),
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda s: map_language(parse_param(_data(s).get("spr"))),
+    ),
+    KaschuetzSensorDescription(
+        key="save_process",
+        translation_key="save_process",
+        device_class=SensorDeviceClass.ENUM,
+        options=SAVE_STATUSES,
+        value_fn=lambda s: s.coordinator.save_status,
+        attributes_fn=_save_attributes,
+    ),
+    KaschuetzSensorDescription(
+        key="device_a_temp",
+        translation_key="device_a_temp",
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        device_class=SensorDeviceClass.TEMPERATURE,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=_device_param("aTemp"),
+    ),
+    KaschuetzSensorDescription(
+        key="device_sch_w",
+        translation_key="device_sch_w",
+        native_unit_of_measurement=PERCENTAGE,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=_device_param("schW"),
+    ),
+    KaschuetzSensorDescription(
+        key="device_reg_w",
+        translation_key="device_reg_w",
+        native_unit_of_measurement=PERCENTAGE,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=_device_param("regW"),
+    ),
+    KaschuetzSensorDescription(
+        key="device_reg_p",
+        translation_key="device_reg_p",
+        native_unit_of_measurement=UnitOfTime.SECONDS,
+        device_class=SensorDeviceClass.DURATION,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=_device_param("regP"),
+    ),
+    KaschuetzSensorDescription(
         key="connection_quality",
         translation_key="connection_quality",
         native_unit_of_measurement=PERCENTAGE,
         entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda s: s.coordinator.connection_quality,
     ),
-    SensorEntityDescription(
+    KaschuetzSensorDescription(
         key="consecutive_failures",
         translation_key="consecutive_failures",
         entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda s: s.coordinator.consecutive_failures,
     ),
-    SensorEntityDescription(
+    KaschuetzSensorDescription(
         key="last_successful_poll",
         translation_key="last_successful_poll",
         device_class=SensorDeviceClass.TIMESTAMP,
         entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda s: s.coordinator.last_success,
     ),
-    SensorEntityDescription(
+    KaschuetzSensorDescription(
         key="optimizer_samples",
         translation_key="optimizer_samples",
         entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda s: s.coordinator.optimizer.sample_count(),
     ),
-    SensorEntityDescription(
+    KaschuetzSensorDescription(
         key="optimizer_cycles",
         translation_key="optimizer_cycles",
         entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda s: s.suggestion().get("cycles_used"),
     ),
-    SensorEntityDescription(
+    KaschuetzSensorDescription(
         key="optimizer_confidence",
         translation_key="optimizer_confidence",
+        device_class=SensorDeviceClass.ENUM,
+        options=["low", "medium", "high"],
         entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda s: s.suggestion().get("confidence"),
+        attributes_fn=_suggestion_attributes,
+        unrecorded=True,
     ),
-    SensorEntityDescription(
-        key="device_a_temp",
-        translation_key="device_a_temp",
-        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
-        entity_category=EntityCategory.DIAGNOSTIC,
-    ),
-    SensorEntityDescription(
-        key="device_sch_w",
-        translation_key="device_sch_w",
-        entity_category=EntityCategory.DIAGNOSTIC,
-    ),
-    SensorEntityDescription(
-        key="device_reg_w",
-        translation_key="device_reg_w",
-        entity_category=EntityCategory.DIAGNOSTIC,
-    ),
-    SensorEntityDescription(
-        key="device_reg_p",
-        translation_key="device_reg_p",
-        entity_category=EntityCategory.DIAGNOSTIC,
-    ),
-    SensorEntityDescription(
+    KaschuetzSensorDescription(
         key="burn_history_time_s",
         translation_key="burn_history_time_s",
+        native_unit_of_measurement=UnitOfTime.SECONDS,
+        device_class=SensorDeviceClass.DURATION,
         entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda s: s.coordinator.optimizer.history_snapshot(include_arrays=False).get(
+            "time_s"
+        ),
+        attributes_fn=lambda s: s.coordinator.optimizer.history_snapshot(include_arrays=True),
+        unrecorded=True,
     ),
-    SensorEntityDescription(
+    KaschuetzSensorDescription(
         key="kpi_time_to_peak",
         translation_key="kpi_time_to_peak",
+        native_unit_of_measurement=UnitOfTime.SECONDS,
+        device_class=SensorDeviceClass.DURATION,
         entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=_kpi("time_to_peak_s"),
     ),
-    SensorEntityDescription(
+    KaschuetzSensorDescription(
         key="kpi_peak_temp",
         translation_key="kpi_peak_temp",
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        device_class=SensorDeviceClass.TEMPERATURE,
         entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=_kpi("peak_temp"),
     ),
-    SensorEntityDescription(
+    KaschuetzSensorDescription(
         key="kpi_overshoot",
         translation_key="kpi_overshoot",
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=_kpi("overshoot"),
     ),
-    SensorEntityDescription(
+    KaschuetzSensorDescription(
         key="kpi_cooldown_rate",
         translation_key="kpi_cooldown_rate",
+        native_unit_of_measurement="°C/min",
         entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=_kpi("cooldown_rate_c_per_min"),
     ),
-    SensorEntityDescription(
+    KaschuetzSensorDescription(
         key="kpi_flap_oscillation",
         translation_key="kpi_flap_oscillation",
         entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=_kpi("flap_oscillation"),
     ),
 )
+
+# Sensors removed in 1.5.0 (their mappings were not backed by the device protocol).
+OBSOLETE_SENSOR_KEYS = ("com_error_text", "spr_code")
 
 
 async def async_setup_entry(
@@ -165,130 +307,39 @@ async def async_setup_entry(
 ) -> None:
     """Set up Kaschuetz sensors from config entry."""
     coordinator: KaschuetzDataCoordinator = hass.data[DOMAIN][entry.entry_id][RUNTIME_COORDINATOR]
-    entities = [
+    async_add_entities(
         KaschuetzSensor(entry, coordinator, description) for description in SENSOR_DESCRIPTIONS
-    ]
-    async_add_entities(entities)
+    )
 
 
-class KaschuetzSensor(CoordinatorEntity[KaschuetzDataCoordinator], SensorEntity):
+class KaschuetzSensor(KaschuetzEntity, SensorEntity):
     """Single sensor backed by the shared Kaschuetz coordinator."""
+
+    entity_description: KaschuetzSensorDescription
 
     def __init__(
         self,
         entry: ConfigEntry,
         coordinator: KaschuetzDataCoordinator,
-        description: SensorEntityDescription,
+        description: KaschuetzSensorDescription,
     ) -> None:
-        super().__init__(coordinator)
+        super().__init__(coordinator, description)
         self._entry = entry
-        self.entity_description = description
-        self._attr_unique_id = f"kaschuetz_{description.key}_{coordinator.host}"
-        self._attr_has_entity_name = True
-        self._attr_device_info = {
-            "identifiers": {("kaschuetz", coordinator.host)},
-            "name": DEFAULT_NAME,
-            "manufacturer": "Kaschuetz",
-            "model": "Oven Controller",
-        }
+        if description.unrecorded:
+            self._unrecorded_attributes = frozenset({MATCH_ALL})
+
+    def suggestion(self) -> dict[str, Any]:
+        """Return the cached optimizer suggestion for this entry."""
+        return self.coordinator.suggestion(dict(self._entry.options))
 
     @property
-    def native_value(self):
-        """Return current sensor value from coordinator data."""
-        data = self.coordinator.data or {}
-        key = self.entity_description.key
+    def native_value(self) -> Any:
+        """Return current sensor value."""
+        return self.entity_description.value_fn(self)
 
-        if key == "temperature":
-            return data.get("Temp")
-        if key == "flap_position":
-            raw_flap = data.get("Klappe")
-            if isinstance(raw_flap, int):
-                if 0 <= raw_flap <= 7:
-                    return round((raw_flap / 7) * 100)
-                if 0 <= raw_flap <= 100:
-                    return raw_flap
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Return additional attributes."""
+        if self.entity_description.attributes_fn is None:
             return None
-        if key == "flap_position_raw":
-            return data.get("Klappe")
-        if key == "burn_status":
-            state = data.get("state")
-            return map_state_to_text(state if isinstance(state, int) else None)
-        if key == "com_error_code":
-            return data.get("ComError")
-        if key == "com_error_text":
-            com_error = data.get("ComError")
-            return map_com_error_to_text(com_error if isinstance(com_error, int) else None)
-        if key == "spr_code":
-            return data.get("spr")
-        if key == "spr_text":
-            spr_code = data.get("spr")
-            return map_spr_to_text(spr_code if isinstance(spr_code, int) else None)
-        if key == "error_state_code":
-            return data.get("errorState")
-        if key == "error_state_text":
-            error_state = data.get("errorState")
-            return map_error_state_to_text(error_state if isinstance(error_state, int) else None)
-        if key == "connection_quality":
-            return self.coordinator.connection_quality
-        if key == "consecutive_failures":
-            return self.coordinator.consecutive_failures
-        if key == "last_successful_poll":
-            return self.coordinator.last_success
-        if key == "optimizer_samples":
-            return self.coordinator.optimizer.sample_count()
-        if key == "optimizer_cycles":
-            suggestion = self.coordinator.optimizer.calculate(
-                self.coordinator.optimizer_input(dict(self._entry.options))
-            )
-            return suggestion.get("cycles_used")
-        if key == "optimizer_confidence":
-            suggestion = self.coordinator.optimizer.calculate(
-                self.coordinator.optimizer_input(dict(self._entry.options))
-            )
-            return suggestion.get("confidence")
-        if key == "device_a_temp":
-            return data.get("aTemp")
-        if key == "device_sch_w":
-            return data.get("schW")
-        if key == "device_reg_w":
-            return data.get("regW")
-        if key == "device_reg_p":
-            return data.get("regP")
-        if key == "burn_history_time_s":
-            snapshot = self.coordinator.optimizer.history_snapshot(
-                max_points=240, include_arrays=False
-            )
-            return snapshot.get("time_s")
-        if key == "kpi_time_to_peak":
-            return self.coordinator.optimizer.latest_history_kpis().get("time_to_peak_s")
-        if key == "kpi_peak_temp":
-            return self.coordinator.optimizer.latest_history_kpis().get("peak_temp")
-        if key == "kpi_overshoot":
-            return self.coordinator.optimizer.latest_history_kpis().get("overshoot")
-        if key == "kpi_cooldown_rate":
-            return self.coordinator.optimizer.latest_history_kpis().get("cooldown_rate_c_per_min")
-        if key == "kpi_flap_oscillation":
-            return self.coordinator.optimizer.latest_history_kpis().get("flap_oscillation")
-        return None
-
-    @property
-    def extra_state_attributes(self) -> dict | None:
-        """Expose additional diagnostics for optimization sensors."""
-        key = self.entity_description.key
-        if key in {"optimizer_cycles", "optimizer_confidence"}:
-            suggestion = self.coordinator.optimizer.calculate(
-                self.coordinator.optimizer_input(dict(self._entry.options))
-            )
-            return {
-                "samples_used": suggestion.get("samples_used"),
-                "cycles_used": suggestion.get("cycles_used"),
-                "stats": suggestion.get("stats"),
-                "cycle_stats": suggestion.get("cycle_stats"),
-                "kpis": suggestion.get("kpis"),
-                "safety": suggestion.get("safety"),
-                "adjustments": suggestion.get("adjustments"),
-                "optimizer_mode": suggestion.get("optimizer_mode"),
-            }
-        if key == "burn_history_time_s":
-            return self.coordinator.optimizer.history_snapshot(max_points=240, include_arrays=True)
-        return None
+        return self.entity_description.attributes_fn(self)

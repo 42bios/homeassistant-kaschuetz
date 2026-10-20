@@ -17,12 +17,8 @@
   "options": {
     "step": {
       "init": {
-        "title": "Adjust Burn Parameters",
+        "title": "Options",
         "data": {
-          "aTemp": "Active Temperature",
-          "schW": "Closing Value",
-          "regW": "Regulation Value",
-          "regP": "Regulation Period",
           "update_interval": "Update interval (seconds)",
           "optimizer_mode": "Optimizer mode",
           "optimizer_profile": "Optimizer profile",
@@ -37,180 +33,152 @@
         "name": "Temperature"
       },
       "flap_position": {
-        "name": "Flap Position"
+        "name": "Flap position"
       },
       "flap_position_raw": {
-        "name": "Flap Position Raw (0-7)"
+        "name": "Flap position raw (0-7)"
       },
       "burn_status": {
-        "name": "Burn Status",
+        "name": "Burn status",
         "state": {
-          "standby": "Standby",
-          "start": "Start",
-          "operation": "Operation",
-          "embers_phase": "Embers phase",
-          "waiting_for_activation": "Waiting for activation",
+          "init": "Initializing",
+          "waiting_for_active": "Waiting for active",
           "idle": "Idle",
-          "filling_door_open": "Filling door open",
+          "door_open": "Filling door open",
           "searching_maximum": "Searching maximum",
           "burn_control": "Burn control",
           "burn_finished": "Burn finished",
-          "unknown": "Unknown"
+          "fault": "Fault",
+          "waiting": "Waiting"
         }
       },
-      "com_error_code": {
-        "name": "Communication Error Code"
-      },
-      "com_error_text": {
-        "name": "Communication Error",
+      "error_state_text": {
+        "name": "Error",
         "state": {
-          "ok": "OK",
-          "minor_communication_issue": "Minor communication issue",
-          "communication_retry": "Communication retry",
-          "device_not_ready": "Device not ready",
-          "sensor_problem": "Sensor problem",
-          "actuator_problem": "Actuator problem",
-          "thermal_guard": "Thermal guard",
-          "controller_fault": "Controller fault",
-          "configuration_problem": "Configuration problem",
-          "communication_lost": "Communication lost",
-          "unknown": "Unknown"
-        }
-      },
-      "spr_code": {
-        "name": "Controller Mode Code (spr)"
-      },
-      "spr_text": {
-        "name": "Controller Mode",
-        "state": {
-          "spr_code_0": "SPR Code 0",
-          "spr_code_1": "SPR Code 1",
-          "spr_code_2": "SPR Code 2",
-          "spr_code_3": "SPR Code 3",
-          "spr_code_4": "SPR Code 4",
-          "spr_code_5": "SPR Code 5",
-          "spr_code_6": "SPR Code 6",
-          "spr_code_7": "SPR Code 7",
-          "spr_code_8": "SPR Code 8",
-          "spr_code_9": "SPR Code 9",
-          "spr_code_10": "SPR Code 10",
-          "spr_code_11": "SPR Code 11",
-          "spr_code_12": "SPR Code 12",
-          "spr_code_13": "SPR Code 13",
-          "spr_code_14": "SPR Code 14",
-          "spr_code_15": "SPR Code 15",
-          "spr_code_16": "SPR Code 16",
-          "spr_code_17": "SPR Code 17",
-          "spr_code_18": "SPR Code 18",
-          "spr_code_19": "SPR Code 19",
-          "spr_code_20": "SPR Code 20",
+          "none": "No error",
+          "fault": "Fault",
+          "temperature_sensor": "Temperature sensor",
+          "air_shutter": "Air shutter",
+          "power_supply": "Power supply",
+          "ks": "KS",
+          "air_shutter_2": "Air shutter*",
           "unknown": "Unknown"
         }
       },
       "error_state_code": {
-        "name": "Oven Error State Code"
+        "name": "Error code"
       },
-      "error_state_text": {
-        "name": "Oven Error State",
+      "com_error_code": {
+        "name": "Communication code (ComError)"
+      },
+      "spr_text": {
+        "name": "Display language",
         "state": {
-          "ok": "OK",
-          "error_code_1": "Error code 1",
-          "error_code_2": "Error code 2",
-          "error_code_3": "Error code 3",
-          "error_code_4": "Error code 4",
-          "error_code_5": "Error code 5",
-          "error_code_6": "Error code 6",
-          "error_code_7": "Error code 7",
-          "error_code_8": "Error code 8",
-          "error_code_9": "Error code 9",
-          "error_code_10": "Error code 10",
-          "error_code_11": "Error code 11",
-          "error_code_12": "Error code 12",
-          "error_code_13": "Error code 13",
-          "error_code_14": "Error code 14",
-          "error_code_15": "Error code 15",
-          "error_code_16": "Error code 16",
-          "error_code_17": "Error code 17",
-          "error_code_18": "Error code 18",
-          "error_code_19": "Error code 19",
-          "error_code_20": "Error code 20",
-          "unknown": "Unknown"
+          "de": "German",
+          "en": "English",
+          "cs": "Czech",
+          "it": "Italian",
+          "sk": "Slovak"
         }
       },
-      "connection_quality": {
-        "name": "Connection Quality"
-      },
-      "consecutive_failures": {
-        "name": "Consecutive Failures"
-      },
-      "last_successful_poll": {
-        "name": "Last Successful Poll"
-      },
-      "optimizer_samples": {
-        "name": "Optimizer Samples"
-      },
-      "optimizer_cycles": {
-        "name": "Optimizer Cycles"
-      },
-      "optimizer_confidence": {
-        "name": "Optimizer Confidence"
+      "save_process": {
+        "name": "Save process",
+        "state": {
+          "idle": "Idle",
+          "starting": "Starting",
+          "wrong_state": "Wrong oven state",
+          "open_door": "Open the filling door",
+          "keep_door_open": "Keep the filling door open",
+          "close_door": "Close the filling door",
+          "writing": "Saving",
+          "success": "Saved",
+          "failed": "Failed",
+          "timeout": "Timed out",
+          "cancelled": "Cancelled"
+        }
       },
       "device_a_temp": {
-        "name": "Device Active Temperature"
+        "name": "Device active temperature"
       },
       "device_sch_w": {
-        "name": "Device Closing Value"
+        "name": "Device closing value"
       },
       "device_reg_w": {
-        "name": "Device Regulation Value"
+        "name": "Device control value"
       },
       "device_reg_p": {
-        "name": "Device Regulation Period"
+        "name": "Device control period"
+      },
+      "connection_quality": {
+        "name": "Connection quality"
+      },
+      "consecutive_failures": {
+        "name": "Consecutive failures"
+      },
+      "last_successful_poll": {
+        "name": "Last successful poll"
+      },
+      "optimizer_samples": {
+        "name": "Optimizer samples"
+      },
+      "optimizer_cycles": {
+        "name": "Optimizer cycles"
+      },
+      "optimizer_confidence": {
+        "name": "Optimizer confidence",
+        "state": {
+          "low": "Low",
+          "medium": "Medium",
+          "high": "High"
+        }
       },
       "burn_history_time_s": {
-        "name": "Burn History Time (s)"
+        "name": "History time"
       },
       "kpi_time_to_peak": {
-        "name": "KPI Time To Peak (s)"
+        "name": "KPI time to peak"
       },
       "kpi_peak_temp": {
-        "name": "KPI Peak Temperature"
+        "name": "KPI peak temperature"
       },
       "kpi_overshoot": {
-        "name": "KPI Overshoot"
+        "name": "KPI peak above active temperature"
       },
       "kpi_cooldown_rate": {
-        "name": "KPI Cooldown Rate (C/min)"
+        "name": "KPI cooldown rate"
       },
       "kpi_flap_oscillation": {
-        "name": "KPI Flap Oscillation"
+        "name": "KPI flap oscillation"
       }
     },
     "binary_sensor": {
       "door_open": {
-        "name": "Door"
+        "name": "Filling door"
+      },
+      "fault": {
+        "name": "Fault"
       },
       "communication_problem": {
-        "name": "Communication Problem"
+        "name": "Communication problem"
       }
     },
     "number": {
       "a_temp": {
-        "name": "Active Temperature"
+        "name": "Active temperature"
       },
       "sch_w": {
-        "name": "Closing Value"
+        "name": "Closing value"
       },
       "reg_w": {
-        "name": "Regulation Value"
+        "name": "Control value"
       },
       "reg_p": {
-        "name": "Regulation Period"
+        "name": "Control period"
       }
     },
     "select": {
       "optimizer_mode": {
-        "name": "Optimizer Mode",
+        "name": "Optimizer mode",
         "state": {
           "conservative": "Conservative",
           "balanced": "Balanced",
@@ -219,17 +187,31 @@
       }
     },
     "button": {
+      "start_save_process": {
+        "name": "Save parameters"
+      },
+      "cancel_save_process": {
+        "name": "Cancel save process"
+      },
+      "discard_pending_parameters": {
+        "name": "Discard changed parameters"
+      },
       "calculate_optimization": {
-        "name": "Calculate Optimization"
+        "name": "Calculate optimization"
       },
       "apply_optimization_safe": {
-        "name": "Apply Optimization (Safe, Experimental)"
+        "name": "Apply optimization (experimental)"
       },
       "apply_optimization_device": {
-        "name": "Apply Optimization (To Device, Experimental)"
+        "name": "Apply optimization and save (experimental)"
       },
       "reset_optimization_data": {
-        "name": "Reset Optimization Data"
+        "name": "Reset optimization data"
+      }
+    },
+    "switch": {
+      "close_air_shutter": {
+        "name": "Close air shutter (on save)"
       }
     }
   },
@@ -296,37 +278,37 @@
     },
     "apply_optimization": {
       "name": "Apply Optimization",
-      "description": "Apply suggested burn parameters to options and optionally write them to the device. Requires experimental auto optimization to be enabled in options.",
+      "description": "Stage the suggested burn parameters as changed values and optionally start the save process. Works only when experimental auto optimization is enabled in the options.",
       "fields": {
         "entry_id": {
           "name": "Entry ID",
           "description": "Optional config entry ID to apply settings for one Kaschuetz device only."
         },
-        "write_to_device": {
-          "name": "Write to device",
-          "description": "Send values to the oven with rqType=8 before saving options."
-        },
         "min_confidence": {
           "name": "Minimum confidence",
           "description": "Only apply optimization when confidence is at least this level."
+        },
+        "start_save": {
+          "name": "Start save process",
+          "description": "Start the save process after staging (open and close the filling door at the oven)."
         }
       }
     },
     "optimize_and_apply": {
       "name": "Optimize And Apply",
-      "description": "Shortcut for apply_optimization with confidence gating. Requires experimental auto optimization to be enabled in options.",
+      "description": "Shortcut for apply optimization with confidence gating. Works only when experimental auto optimization is enabled in the options.",
       "fields": {
         "entry_id": {
           "name": "Entry ID",
           "description": "Optional config entry ID to apply settings for one Kaschuetz device only."
         },
-        "write_to_device": {
-          "name": "Write to device",
-          "description": "Send values to the oven with rqType=8 before saving options."
-        },
         "min_confidence": {
           "name": "Minimum confidence",
           "description": "Only apply optimization when confidence is at least this level."
+        },
+        "start_save": {
+          "name": "Start save process",
+          "description": "Start the save process after staging (open and close the filling door at the oven)."
         }
       }
     },
@@ -337,6 +319,36 @@
         "entry_id": {
           "name": "Entry ID",
           "description": "Optional config entry ID to reset data for one Kaschuetz device only."
+        }
+      }
+    },
+    "start_save_process": {
+      "name": "Save parameters",
+      "description": "Start the controller's save process for the changed parameters. Only possible in the states waiting for active, idle or burn finished. Then open, hold open and close the filling door at the oven within 30 seconds.",
+      "fields": {
+        "entry_id": {
+          "name": "Entry ID",
+          "description": "Optional config entry id to address only one Kaschuetz device."
+        }
+      }
+    },
+    "cancel_save_process": {
+      "name": "Cancel save process",
+      "description": "Cancel a running save process.",
+      "fields": {
+        "entry_id": {
+          "name": "Entry ID",
+          "description": "Optional config entry id to address only one Kaschuetz device."
+        }
+      }
+    },
+    "discard_pending_parameters": {
+      "name": "Discard changed parameters",
+      "description": "Discard all parameters changed in Home Assistant that have not been saved yet.",
+      "fields": {
+        "entry_id": {
+          "name": "Entry ID",
+          "description": "Optional config entry id to address only one Kaschuetz device."
         }
       }
     }

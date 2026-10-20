@@ -94,7 +94,7 @@ export_burn_history_file:
 
 apply_optimization:
   name: Apply Optimization
-  description: Apply suggested burn parameters to integration options and optionally write them to the device. Works only when experimental auto optimization is enabled in integration options.
+  description: Stage the suggested burn parameters as changed values and optionally start the save process. Works only when experimental auto optimization is enabled in integration options.
   fields:
     entry_id:
       name: Entry ID
@@ -103,9 +103,9 @@ apply_optimization:
       example: "abcd1234efgh5678"
       selector:
         text:
-    write_to_device:
-      name: Write to device
-      description: When enabled, values are sent to the oven with rqType=8 before saving options.
+    start_save:
+      name: Start save process
+      description: Start the save process after staging (open and close the filling door at the oven).
       required: false
       default: false
       selector:
@@ -133,9 +133,9 @@ optimize_and_apply:
       example: "abcd1234efgh5678"
       selector:
         text:
-    write_to_device:
-      name: Write to device
-      description: When enabled, values are sent to the oven with rqType=8 before saving options.
+    start_save:
+      name: Start save process
+      description: Start the save process after staging (open and close the filling door at the oven).
       required: false
       default: false
       selector:
@@ -159,6 +159,42 @@ reset_optimization_data:
     entry_id:
       name: Entry ID
       description: Optional config entry id to reset data for only one Kaschuetz device.
+      required: false
+      example: "abcd1234efgh5678"
+      selector:
+        text:
+
+start_save_process:
+  name: Save parameters
+  description: Start the controller's save process for the changed parameters. Only possible in the states waiting for active, idle or burn finished. Then open, hold open and close the filling door at the oven within 30 seconds.
+  fields:
+    entry_id:
+      name: Entry ID
+      description: Optional config entry id to address only one Kaschuetz device.
+      required: false
+      example: "abcd1234efgh5678"
+      selector:
+        text:
+
+cancel_save_process:
+  name: Cancel save process
+  description: Cancel a running save process.
+  fields:
+    entry_id:
+      name: Entry ID
+      description: Optional config entry id to address only one Kaschuetz device.
+      required: false
+      example: "abcd1234efgh5678"
+      selector:
+        text:
+
+discard_pending_parameters:
+  name: Discard changed parameters
+  description: Discard all parameters changed in Home Assistant that have not been saved yet.
+  fields:
+    entry_id:
+      name: Entry ID
+      description: Optional config entry id to address only one Kaschuetz device.
       required: false
       example: "abcd1234efgh5678"
       selector:

@@ -10,15 +10,17 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
     CONF_EXPERIMENTAL_AUTO_OPTIMIZE,
-    DEFAULT_NAME,
     DOMAIN,
     RUNTIME_COORDINATOR,
+    SERVICE_CANCEL_SAVE_PROCESS,
+    SERVICE_DISCARD_PENDING,
+    SERVICE_START_SAVE_PROCESS,
 )
 from .coordinator import KaschuetzDataCoordinator
+from .entity import KaschuetzEntity
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -33,6 +35,24 @@ class KaschuetzButtonDescription(ButtonEntityDescription):
 
 BUTTONS: tuple[KaschuetzButtonDescription, ...] = (
     KaschuetzButtonDescription(
+        key="start_save_process",
+        translation_key="start_save_process",
+        service=SERVICE_START_SAVE_PROCESS,
+        service_data={},
+    ),
+    KaschuetzButtonDescription(
+        key="cancel_save_process",
+        translation_key="cancel_save_process",
+        service=SERVICE_CANCEL_SAVE_PROCESS,
+        service_data={},
+    ),
+    KaschuetzButtonDescription(
+        key="discard_pending_parameters",
+        translation_key="discard_pending_parameters",
+        service=SERVICE_DISCARD_PENDING,
+        service_data={},
+    ),
+    KaschuetzButtonDescription(
         key="calculate_optimization",
         translation_key="calculate_optimization",
         service="calculate_optimization",
@@ -43,14 +63,14 @@ BUTTONS: tuple[KaschuetzButtonDescription, ...] = (
         key="apply_optimization_safe",
         translation_key="apply_optimization_safe",
         service="apply_optimization",
-        service_data={"write_to_device": False, "min_confidence": "medium"},
+        service_data={"start_save": False, "min_confidence": "medium"},
         entity_category=EntityCategory.CONFIG,
     ),
     KaschuetzButtonDescription(
         key="apply_optimization_device",
         translation_key="apply_optimization_device",
         service="apply_optimization",
-        service_data={"write_to_device": True, "min_confidence": "high"},
+        service_data={"start_save": True, "min_confidence": "high"},
         entity_category=EntityCategory.CONFIG,
     ),
     KaschuetzButtonDescription(
@@ -71,36 +91,24 @@ async def async_setup_entry(
     """Set up Kaschuetz button entities."""
     coordinator: KaschuetzDataCoordinator = hass.data[DOMAIN][entry.entry_id][RUNTIME_COORDINATOR]
     async_add_entities(
-        [
-            KaschuetzActionButton(hass, entry, coordinator, description)
-            for description in BUTTONS
-        ]
+        KaschuetzActionButton(entry, coordinator, description) for description in BUTTONS
     )
 
 
-class KaschuetzActionButton(CoordinatorEntity[KaschuetzDataCoordinator], ButtonEntity):
+class KaschuetzActionButton(KaschuetzEntity, ButtonEntity):
     """Action button triggering Kaschuetz services for the current entry."""
+
+    entity_description: KaschuetzButtonDescription
 
     def __init__(
         self,
-        hass: HomeAssistant,
         entry: ConfigEntry,
         coordinator: KaschuetzDataCoordinator,
         description: KaschuetzButtonDescription,
     ) -> None:
-        super().__init__(coordinator)
-        self.hass = hass
+        super().__init__(coordinator, description)
         self._entry = entry
-        self.entity_description = description
-        self._attr_unique_id = f"kaschuetz_{description.key}_{coordinator.host}"
-        self._attr_has_entity_name = True
         self._attr_entity_category = description.entity_category
-        self._attr_device_info = {
-            "identifiers": {("kaschuetz", coordinator.host)},
-            "name": DEFAULT_NAME,
-            "manufacturer": "Kaschuetz",
-            "model": "Oven Controller",
-        }
 
     async def async_press(self) -> None:
         """Trigger configured service."""
@@ -114,9 +122,16 @@ class KaschuetzActionButton(CoordinatorEntity[KaschuetzDataCoordinator], ButtonE
 
     @property
     def available(self) -> bool:
-        """Hide experimental apply buttons unless explicitly enabled."""
+        """Only offer actions that make sense right now."""
         if not super().available:
             return False
-        if self.entity_description.key in {"apply_optimization_safe", "apply_optimization_device"}:
+        key = self.entity_description.key
+        if key in {"apply_optimization_safe", "apply_optimization_device"}:
             return bool(self._entry.options.get(CONF_EXPERIMENTAL_AUTO_OPTIMIZE, False))
+        if key == "start_save_process":
+            return not self.coordinator.save_in_progress
+        if key == "cancel_save_process":
+            return self.coordinator.save_in_progress
+        if key == "discard_pending_parameters":
+            return self.coordinator.has_pending_changes and not self.coordinator.save_in_progress
         return True

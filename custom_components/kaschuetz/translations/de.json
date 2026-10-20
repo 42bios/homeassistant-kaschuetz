@@ -17,12 +17,8 @@
   "options": {
     "step": {
       "init": {
-        "title": "Abbrandparameter anpassen",
+        "title": "Optionen",
         "data": {
-          "aTemp": "Aktive Temperatur",
-          "schW": "Schließwert",
-          "regW": "Regelwert",
-          "regP": "Regelperiode",
           "update_interval": "Aktualisierungsintervall (Sekunden)",
           "optimizer_mode": "Optimierungsmodus",
           "optimizer_profile": "Optimierungsprofil",
@@ -45,97 +41,73 @@
       "burn_status": {
         "name": "Abbrandstatus",
         "state": {
-          "standby": "Standby",
-          "start": "Start",
-          "operation": "Betrieb",
-          "embers_phase": "Glutphase",
-          "waiting_for_activation": "Warte auf Aktiv",
+          "init": "Initialisierung",
+          "waiting_for_active": "Warte auf Aktiv",
           "idle": "Ruhezustand",
-          "filling_door_open": "Fülltüre offen",
+          "door_open": "Fülltür offen",
           "searching_maximum": "Suche Maximum",
-          "burn_control": "Abbrandregelung",
+          "burn_control": "Regelbetrieb",
           "burn_finished": "Abbrand beendet",
-          "unknown": "Unbekannt"
+          "fault": "Störung",
+          "waiting": "Warten"
         }
       },
-      "com_error_code": {
-        "name": "Kommunikationsfehlercode"
-      },
-      "com_error_text": {
-        "name": "Kommunikationsfehler",
+      "error_state_text": {
+        "name": "Fehler",
         "state": {
-          "ok": "OK",
-          "minor_communication_issue": "Kleines Kommunikationsproblem",
-          "communication_retry": "Kommunikation wird wiederholt",
-          "device_not_ready": "Gerät nicht bereit",
-          "sensor_problem": "Sensorproblem",
-          "actuator_problem": "Aktuatorproblem",
-          "thermal_guard": "Thermischer Schutz aktiv",
-          "controller_fault": "Controller-Fehler",
-          "configuration_problem": "Konfigurationsproblem",
-          "communication_lost": "Kommunikation verloren",
-          "unknown": "Unbekannt"
-        }
-      },
-      "spr_code": {
-        "name": "Controllermodus-Code (spr)"
-      },
-      "spr_text": {
-        "name": "Controllermodus",
-        "state": {
-          "spr_code_0": "SPR Code 0",
-          "spr_code_1": "SPR Code 1",
-          "spr_code_2": "SPR Code 2",
-          "spr_code_3": "SPR Code 3",
-          "spr_code_4": "SPR Code 4",
-          "spr_code_5": "SPR Code 5",
-          "spr_code_6": "SPR Code 6",
-          "spr_code_7": "SPR Code 7",
-          "spr_code_8": "SPR Code 8",
-          "spr_code_9": "SPR Code 9",
-          "spr_code_10": "SPR Code 10",
-          "spr_code_11": "SPR Code 11",
-          "spr_code_12": "SPR Code 12",
-          "spr_code_13": "SPR Code 13",
-          "spr_code_14": "SPR Code 14",
-          "spr_code_15": "SPR Code 15",
-          "spr_code_16": "SPR Code 16",
-          "spr_code_17": "SPR Code 17",
-          "spr_code_18": "SPR Code 18",
-          "spr_code_19": "SPR Code 19",
-          "spr_code_20": "SPR Code 20",
+          "none": "Kein Fehler",
+          "fault": "Störung",
+          "temperature_sensor": "Temperaturfühler",
+          "air_shutter": "Luftklappe",
+          "power_supply": "Stromversorgung",
+          "ks": "KS",
+          "air_shutter_2": "Luftklappe*",
           "unknown": "Unbekannt"
         }
       },
       "error_state_code": {
-        "name": "Ofenfehlercode"
+        "name": "Fehlercode"
       },
-      "error_state_text": {
-        "name": "Ofenfehler",
+      "com_error_code": {
+        "name": "Kommunikationscode (ComError)"
+      },
+      "spr_text": {
+        "name": "Anzeigesprache",
         "state": {
-          "ok": "OK",
-          "error_code_1": "Fehlercode 1",
-          "error_code_2": "Fehlercode 2",
-          "error_code_3": "Fehlercode 3",
-          "error_code_4": "Fehlercode 4",
-          "error_code_5": "Fehlercode 5",
-          "error_code_6": "Fehlercode 6",
-          "error_code_7": "Fehlercode 7",
-          "error_code_8": "Fehlercode 8",
-          "error_code_9": "Fehlercode 9",
-          "error_code_10": "Fehlercode 10",
-          "error_code_11": "Fehlercode 11",
-          "error_code_12": "Fehlercode 12",
-          "error_code_13": "Fehlercode 13",
-          "error_code_14": "Fehlercode 14",
-          "error_code_15": "Fehlercode 15",
-          "error_code_16": "Fehlercode 16",
-          "error_code_17": "Fehlercode 17",
-          "error_code_18": "Fehlercode 18",
-          "error_code_19": "Fehlercode 19",
-          "error_code_20": "Fehlercode 20",
-          "unknown": "Unbekannt"
+          "de": "Deutsch",
+          "en": "Englisch",
+          "cs": "Tschechisch",
+          "it": "Italienisch",
+          "sk": "Slowakisch"
         }
+      },
+      "save_process": {
+        "name": "Speichervorgang",
+        "state": {
+          "idle": "Inaktiv",
+          "starting": "Wird gestartet",
+          "wrong_state": "Falscher Ofenzustand",
+          "open_door": "Fülltür öffnen",
+          "keep_door_open": "Fülltür offen halten",
+          "close_door": "Fülltür schließen",
+          "writing": "Wird gespeichert",
+          "success": "Gespeichert",
+          "failed": "Fehlgeschlagen",
+          "timeout": "Zeit abgelaufen",
+          "cancelled": "Abgebrochen"
+        }
+      },
+      "device_a_temp": {
+        "name": "Gerät Aktivtemperatur"
+      },
+      "device_sch_w": {
+        "name": "Gerät Schließwert"
+      },
+      "device_reg_w": {
+        "name": "Gerät Regelwert"
+      },
+      "device_reg_p": {
+        "name": "Gerät Regelperiode"
       },
       "connection_quality": {
         "name": "Verbindungsqualität"
@@ -153,34 +125,27 @@
         "name": "Optimierer-Zyklen"
       },
       "optimizer_confidence": {
-        "name": "Optimierer-Vertrauen"
-      },
-      "device_a_temp": {
-        "name": "Gerät Aktivtemperatur"
-      },
-      "device_sch_w": {
-        "name": "Gerät Schließwert"
-      },
-      "device_reg_w": {
-        "name": "Gerät Regelwert"
-      },
-      "device_reg_p": {
-        "name": "Gerät Regelperiode"
+        "name": "Optimierer-Vertrauen",
+        "state": {
+          "low": "Niedrig",
+          "medium": "Mittel",
+          "high": "Hoch"
+        }
       },
       "burn_history_time_s": {
-        "name": "Abbrandverlauf Zeit (s)"
+        "name": "Verlaufszeit"
       },
       "kpi_time_to_peak": {
-        "name": "KPI Zeit bis Peak (s)"
+        "name": "KPI Zeit bis Spitze"
       },
       "kpi_peak_temp": {
         "name": "KPI Spitzentemperatur"
       },
       "kpi_overshoot": {
-        "name": "KPI Überschwingung"
+        "name": "KPI Spitze über Aktivtemperatur"
       },
       "kpi_cooldown_rate": {
-        "name": "KPI Abkühlrate (C/min)"
+        "name": "KPI Abkühlrate"
       },
       "kpi_flap_oscillation": {
         "name": "KPI Klappen-Oszillation"
@@ -188,7 +153,10 @@
     },
     "binary_sensor": {
       "door_open": {
-        "name": "Tür"
+        "name": "Fülltür"
+      },
+      "fault": {
+        "name": "Störung"
       },
       "communication_problem": {
         "name": "Kommunikationsproblem"
@@ -196,7 +164,7 @@
     },
     "number": {
       "a_temp": {
-        "name": "Aktive Temperatur"
+        "name": "Aktivtemperatur"
       },
       "sch_w": {
         "name": "Schließwert"
@@ -219,17 +187,31 @@
       }
     },
     "button": {
+      "start_save_process": {
+        "name": "Parameter speichern"
+      },
+      "cancel_save_process": {
+        "name": "Speichervorgang abbrechen"
+      },
+      "discard_pending_parameters": {
+        "name": "Geänderte Parameter verwerfen"
+      },
       "calculate_optimization": {
         "name": "Optimierung berechnen"
       },
       "apply_optimization_safe": {
-        "name": "Optimierung anwenden (sicher, experimentell)"
+        "name": "Optimierung übernehmen (experimentell)"
       },
       "apply_optimization_device": {
-        "name": "Optimierung anwenden (an Gerät, experimentell)"
+        "name": "Optimierung übernehmen und speichern (experimentell)"
       },
       "reset_optimization_data": {
         "name": "Optimierungsdaten zurücksetzen"
+      }
+    },
+    "switch": {
+      "close_air_shutter": {
+        "name": "Zuluft zu (beim Speichern)"
       }
     }
   },
@@ -296,37 +278,37 @@
     },
     "apply_optimization": {
       "name": "Optimierung anwenden",
-      "description": "Übernimmt vorgeschlagene Abbrandparameter in die Optionen und schreibt sie optional auf das Gerät. Erfordert aktivierte experimentelle Auto-Optimierung in den Optionen.",
+      "description": "Übernimmt die vorgeschlagenen Abbrandparameter als geänderte Werte und startet optional den Speichervorgang. Erfordert aktivierte experimentelle Auto-Optimierung in den Optionen.",
       "fields": {
         "entry_id": {
           "name": "Entry-ID",
           "description": "Optionale Config-Entry-ID, um Einstellungen nur für ein Kaschuetz-Gerät anzuwenden."
         },
-        "write_to_device": {
-          "name": "Auf Gerät schreiben",
-          "description": "Sendet Werte vor dem Speichern per rqType=8 an den Ofen."
-        },
         "min_confidence": {
           "name": "Mindestvertrauen",
           "description": "Wendet Optimierung nur an, wenn das Vertrauen mindestens diesem Wert entspricht."
+        },
+        "start_save": {
+          "name": "Speichervorgang starten",
+          "description": "Startet nach dem Übernehmen den Speichervorgang (Fülltür am Ofen öffnen und schließen)."
         }
       }
     },
     "optimize_and_apply": {
       "name": "Optimieren und anwenden",
-      "description": "Abkürzung für apply_optimization mit Vertrauensprüfung. Erfordert aktivierte experimentelle Auto-Optimierung in den Optionen.",
+      "description": "Kurzform von Optimierung anwenden mit Vertrauensschwelle. Erfordert aktivierte experimentelle Auto-Optimierung in den Optionen.",
       "fields": {
         "entry_id": {
           "name": "Entry-ID",
           "description": "Optionale Config-Entry-ID, um Einstellungen nur für ein Kaschuetz-Gerät anzuwenden."
         },
-        "write_to_device": {
-          "name": "Auf Gerät schreiben",
-          "description": "Sendet Werte vor dem Speichern per rqType=8 an den Ofen."
-        },
         "min_confidence": {
           "name": "Mindestvertrauen",
           "description": "Wendet Optimierung nur an, wenn das Vertrauen mindestens diesem Wert entspricht."
+        },
+        "start_save": {
+          "name": "Speichervorgang starten",
+          "description": "Startet nach dem Übernehmen den Speichervorgang (Fülltür am Ofen öffnen und schließen)."
         }
       }
     },
@@ -337,6 +319,36 @@
         "entry_id": {
           "name": "Entry-ID",
           "description": "Optionale Config-Entry-ID, um Daten nur für ein Kaschuetz-Gerät zurückzusetzen."
+        }
+      }
+    },
+    "start_save_process": {
+      "name": "Parameter speichern",
+      "description": "Startet den Speichervorgang der Ofensteuerung für die geänderten Parameter. Nur in den Zuständen Warte auf Aktiv, Ruhezustand oder Abbrand beendet möglich. Danach innerhalb von 30 Sekunden am Ofen die Fülltür öffnen, offen halten und schließen.",
+      "fields": {
+        "entry_id": {
+          "name": "Entry-ID",
+          "description": "Optionale Config-Entry-ID, um nur ein Kaschuetz-Gerät anzusprechen."
+        }
+      }
+    },
+    "cancel_save_process": {
+      "name": "Speichervorgang abbrechen",
+      "description": "Bricht einen laufenden Speichervorgang ab.",
+      "fields": {
+        "entry_id": {
+          "name": "Entry-ID",
+          "description": "Optionale Config-Entry-ID, um nur ein Kaschuetz-Gerät anzusprechen."
+        }
+      }
+    },
+    "discard_pending_parameters": {
+      "name": "Geänderte Parameter verwerfen",
+      "description": "Verwirft alle in Home Assistant geänderten, noch nicht gespeicherten Parameter.",
+      "fields": {
+        "entry_id": {
+          "name": "Entry-ID",
+          "description": "Optionale Config-Entry-ID, um nur ein Kaschuetz-Gerät anzusprechen."
         }
       }
     }

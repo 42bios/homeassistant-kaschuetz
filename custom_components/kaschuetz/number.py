@@ -1,64 +1,65 @@
-"""Kaschuetz number platform for burn parameters."""
+"""Kaschuetz number platform for burn parameters.
+
+Changing a number only stages the value in Home Assistant. The controller
+accepts new parameters exclusively through its save process (filling door
+open/close at the oven), which is started with the "Save parameters" button.
+"""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
-from homeassistant.components.number import NumberEntity, NumberEntityDescription
+from homeassistant.components.number import (
+    NumberDeviceClass,
+    NumberEntity,
+    NumberEntityDescription,
+    NumberMode,
+)
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import PERCENTAGE, UnitOfTemperature, UnitOfTime
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .api import KaschuetzApiError, async_send_abbrand_params
-from .const import (
-    CONF_HOST,
-    DEFAULT_NAME,
-    DOMAIN,
-    RUNTIME_COORDINATOR,
-)
+from .const import BURN_PARAM_LIMITS, BURN_PARAM_SCALE, DOMAIN, RUNTIME_COORDINATOR
 from .coordinator import KaschuetzDataCoordinator
+from .entity import KaschuetzEntity
 
 
 @dataclass(frozen=True, kw_only=True)
 class KaschuetzNumberDescription(NumberEntityDescription):
-    """Metadata for a writable Kaschuetz number entity."""
+    """Metadata for a burn parameter; limits come from the device web UI."""
 
-    key: str
-    native_min_value: int
-    native_max_value: int
-    native_step: int
+    param: str
 
 
 NUMBER_DESCRIPTIONS: tuple[KaschuetzNumberDescription, ...] = (
     KaschuetzNumberDescription(
         key="aTemp",
+        param="aTemp",
         translation_key="a_temp",
-        native_min_value=120,
-        native_max_value=320,
-        native_step=1,
+        device_class=NumberDeviceClass.TEMPERATURE,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
     ),
     KaschuetzNumberDescription(
         key="schW",
+        param="schW",
         translation_key="sch_w",
-        native_min_value=120,
-        native_max_value=700,
-        native_step=1,
+        native_unit_of_measurement=PERCENTAGE,
     ),
     KaschuetzNumberDescription(
         key="regW",
+        param="regW",
         translation_key="reg_w",
-        native_min_value=200,
-        native_max_value=1200,
-        native_step=1,
+        native_unit_of_measurement=PERCENTAGE,
     ),
     KaschuetzNumberDescription(
         key="regP",
+        param="regP",
         translation_key="reg_p",
-        native_min_value=120,
-        native_max_value=600,
-        native_step=1,
+        device_class=NumberDeviceClass.DURATION,
+        native_unit_of_measurement=UnitOfTime.SECONDS,
     ),
 )
 
@@ -70,61 +71,50 @@ async def async_setup_entry(
 ) -> None:
     """Set up Kaschuetz number entities."""
     coordinator: KaschuetzDataCoordinator = hass.data[DOMAIN][entry.entry_id][RUNTIME_COORDINATOR]
-    entities = [
-        KaschuetzNumberEntity(hass, entry, coordinator, description)
-        for description in NUMBER_DESCRIPTIONS
-    ]
-    async_add_entities(entities)
+    async_add_entities(
+        KaschuetzNumberEntity(coordinator, description) for description in NUMBER_DESCRIPTIONS
+    )
 
 
-class KaschuetzNumberEntity(CoordinatorEntity[KaschuetzDataCoordinator], NumberEntity):
-    """Writable number entity mapped to a device burn parameter."""
+class KaschuetzNumberEntity(KaschuetzEntity, NumberEntity):
+    """Burn parameter: shows the staged value, or the device value without changes."""
+
+    entity_description: KaschuetzNumberDescription
+    _attr_mode = NumberMode.BOX
 
     def __init__(
-        self,
-        hass: HomeAssistant,
-        entry: ConfigEntry,
-        coordinator: KaschuetzDataCoordinator,
-        description: KaschuetzNumberDescription,
+        self, coordinator: KaschuetzDataCoordinator, description: KaschuetzNumberDescription
     ) -> None:
-        super().__init__(coordinator)
-        self.hass = hass
-        self._entry = entry
-        self.entity_description = description
-        self._attr_unique_id = f"kaschuetz_{description.key}_{coordinator.host}"
-        self._attr_has_entity_name = True
-        self._attr_native_min_value = description.native_min_value
-        self._attr_native_max_value = description.native_max_value
-        self._attr_native_step = description.native_step
-        self._attr_device_info = {
-            "identifiers": {("kaschuetz", coordinator.host)},
-            "name": DEFAULT_NAME,
-            "manufacturer": "Kaschuetz",
-            "model": "Oven Controller",
-        }
+        super().__init__(coordinator, description)
+        min_value, max_value, step = BURN_PARAM_LIMITS[description.param]
+        self._scale = BURN_PARAM_SCALE[description.param]
+        self._attr_native_min_value = min_value / self._scale
+        self._attr_native_max_value = max_value / self._scale
+        self._attr_native_step = step / self._scale
+
+    def _device_raw(self) -> int | None:
+        params = self.coordinator.device_burn_params()
+        return params.get(self.entity_description.param) if params else None
 
     @property
     def native_value(self) -> float | None:
-        """Return the burn parameter as currently reported by the device."""
-        value = (self.coordinator.data or {}).get(self.entity_description.key)
-        try:
-            return float(value)
-        except (TypeError, ValueError):
-            return None
+        """Return the staged value, otherwise the value reported by the device."""
+        raw = self.coordinator.pending_params.get(self.entity_description.param)
+        if raw is None:
+            raw = self._device_raw()
+        return None if raw is None else raw / self._scale
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Expose the device value and whether a change is staged."""
+        device_raw = self._device_raw()
+        return {
+            "device_value": None if device_raw is None else device_raw / self._scale,
+            "pending": self.entity_description.param in self.coordinator.pending_params,
+        }
 
     async def async_set_native_value(self, value: float) -> None:
-        """Push the changed parameter to the device, keeping the others as reported."""
-        current = await self.coordinator.async_current_burn_params()
-        if current is None:
-            raise HomeAssistantError(
-                "Current burn parameters were not reported by the device; refusing to write"
-            )
-
-        applied = {**current, self.entity_description.key: round(value)}
-
-        try:
-            await async_send_abbrand_params(self.hass, self._entry.data[CONF_HOST], applied)
-        except KaschuetzApiError as err:
-            raise HomeAssistantError(f"Failed writing burn parameters: {err}") from err
-
-        await self.coordinator.async_request_refresh()
+        """Stage the new value for the next save process."""
+        if self.coordinator.save_in_progress:
+            raise HomeAssistantError("Cannot change parameters while a save is running")
+        self.coordinator.stage_param(self.entity_description.param, value * self._scale)

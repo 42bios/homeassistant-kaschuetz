@@ -37,6 +37,9 @@ async def async_get_config_entry_diagnostics(
             "temp": data.get("Temp") if isinstance(data, dict) else None,
             "klappe": data.get("Klappe") if isinstance(data, dict) else None,
             "com_error": com_error,
+            "error_state": data.get("errorState") if isinstance(data, dict) else None,
+            "time_s": data.get("Time_s") if isinstance(data, dict) else None,
+            "spr": data.get("spr") if isinstance(data, dict) else None,
             "burn_params": coordinator.device_burn_params() if coordinator else None,
         },
         "coordinator": {
@@ -47,13 +50,17 @@ async def async_get_config_entry_diagnostics(
             "failed_polls": getattr(coordinator, "failed_polls", None),
             "last_error": getattr(coordinator, "last_error", None),
         },
+        "save_process": {
+            "status": coordinator.save_status if coordinator else None,
+            "pending_params": dict(coordinator.pending_params) if coordinator else None,
+            "close_air_shutter": coordinator.close_air_shutter if coordinator else None,
+            "last_result": coordinator.save_last_result if coordinator else None,
+        },
         "optimizer": {
             "available": bool(optimizer),
             "sample_count": optimizer.sample_count() if optimizer else 0,
             "latest_suggestion": (
-                optimizer.calculate(coordinator.optimizer_input(dict(entry.options)))
-                if optimizer and coordinator
-                else None
+                coordinator.suggestion(dict(entry.options)) if coordinator else None
             ),
         },
     }
