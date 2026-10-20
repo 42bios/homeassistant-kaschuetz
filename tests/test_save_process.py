@@ -277,3 +277,29 @@ async def test_export_file(
     files = list((tmp_path / "kaschuetz_exports").glob("*.csv"))
     assert len(files) == 1
     assert files[0].read_text().startswith("index,time_offset_s,temp_c,flap")
+
+
+async def test_save_ended_by_controller(
+    hass: HomeAssistant, entry: MockConfigEntry, device: FakeDevice
+) -> None:
+    """If the controller leaves save mode on its own, the save fails right away."""
+    device.door_sequence = [2, 0]
+    coordinator = await _setup(hass, entry)
+    await _set_number(hass, "aTemp", 300)
+    await coordinator.async_start_save()
+    await _wait_for_save(hass, coordinator)
+    assert coordinator.save_status == "failed"
+    assert not _set_requests(device)
+
+
+async def test_save_button_available_again_after_save(
+    hass: HomeAssistant, entry: MockConfigEntry, device: FakeDevice
+) -> None:
+    """The save button is offered again as soon as the process ended."""
+    device.reject_write = True
+    coordinator = await _setup(hass, entry)
+    button = _eid(hass, "button", "start_save_process")
+    await _set_number(hass, "aTemp", 300)
+    await coordinator.async_start_save()
+    await _wait_for_save(hass, coordinator)
+    assert hass.states.get(button).state != "unavailable"

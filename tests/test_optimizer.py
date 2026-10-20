@@ -76,3 +76,18 @@ def test_low_sample_suggestion_keeps_current_values() -> None:
     assert (suggestion["aTemp"], suggestion["regP"]) == (350, 150)
     # Without known device values there is nothing to suggest.
     assert BurnOptimizer().calculate({})["aTemp"] is None
+
+
+def test_idle_samples_do_not_fill_the_buffer() -> None:
+    optimizer = BurnOptimizer()
+    for _ in range(100):
+        optimizer.add_sample({"state": 6, "Temp": 23})
+    assert optimizer.sample_count() == 0
+    for _ in range(10):
+        optimizer.add_sample({"state": 9, "Temp": 300})
+    for _ in range(100):
+        optimizer.add_sample({"state": 6, "Temp": 40})
+    # Ten burn samples plus one separator.
+    assert optimizer.sample_count() == 11
+    restored = BurnOptimizer.from_dict(optimizer.to_dict())
+    assert restored.sample_count() == 11

@@ -26,6 +26,7 @@ from .const import (
     BURN_PARAM_KEYS,
     EVENT_SAVE_RESULT,
     SAVE_ALLOWED_STATES,
+    SAVE_DEVICE_STATE_INACTIVE,
     SAVE_DEVICE_STATE_READY,
     SAVE_DEVICE_STATE_TO_STATUS,
     SAVE_PROCESS_POLL_SECONDS,
@@ -130,6 +131,7 @@ class KaschuetzDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._save_deadline: float | None = None
         self._save_task: asyncio.Task[None] | None = None
         self._suggestion_cache: tuple[Any, dict[str, Any]] | None = None
+        self._persisted_count = optimizer.sample_count()
 
     # ----------------------------------------------------------------- params
 
@@ -262,6 +264,8 @@ class KaschuetzDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._async_run_save(target, menu["spr"], self.close_air_shutter),
             name=f"kaschuetz_save_{self.host}",
         )
+        # Entities (e.g. button availability) depend on the task being done.
+        self._save_task.add_done_callback(lambda _: self.async_update_listeners())
 
     async def async_cancel_save(self) -> None:
         """Cancel a running save process."""
@@ -344,6 +348,12 @@ class KaschuetzDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     await self.async_request_refresh()
                     return
 
+                if device_state == SAVE_DEVICE_STATE_INACTIVE:
+                    self._finish_save(
+                        SAVE_STATUS_FAILED, target, "Save mode was ended by the controller"
+                    )
+                    return
+
                 status = SAVE_DEVICE_STATE_TO_STATUS.get(device_state, SAVE_STATUS_STARTING)
                 if status != self.save_status:
                     self._set_save_status(status)
@@ -409,6 +419,8 @@ class KaschuetzDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             key: value for key, value in self.pending_params.items() if current.get(key) != value
         }
 
-        if self._persist_callback and self.optimizer.sample_count() % 25 == 0:
+        count = self.optimizer.sample_count()
+        if self._persist_callback and count != self._persisted_count and count % 25 == 0:
+            self._persisted_count = count
             await self._persist_callback()
         return data

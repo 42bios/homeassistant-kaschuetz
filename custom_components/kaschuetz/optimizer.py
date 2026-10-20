@@ -50,15 +50,20 @@ class BurnOptimizer:
         self._latest_history_kpis: dict[str, Any] = {}
 
     def add_sample(self, payload: dict[str, Any]) -> None:
-        """Add a sample from raw device payload."""
-        self._samples.append(
-            BurnSample(
-                temp=self._to_float(payload.get("Temp")),
-                flap=self._to_int(payload.get("Klappe")),
-                state=self._to_int(payload.get("state")),
-                com_error=self._to_int(payload.get("ComError")),
-            )
+        """Add a sample from raw device payload.
+
+        Only burn samples are kept, plus one non-burn sample after each burn as
+        cycle separator, so long idle periods do not push burns out of the buffer.
+        """
+        sample = BurnSample(
+            temp=self._to_float(payload.get("Temp")),
+            flap=self._to_int(payload.get("Klappe")),
+            state=self._to_int(payload.get("state")),
+            com_error=self._to_int(payload.get("ComError")),
         )
+        previous_active = bool(self._samples) and self._samples[-1].state in ACTIVE_STATES
+        if sample.state in ACTIVE_STATES or previous_active:
+            self._samples.append(sample)
         self._update_history(payload)
 
     def sample_count(self) -> int:
@@ -470,14 +475,18 @@ class BurnOptimizer:
         for raw in raw_samples:
             if not isinstance(raw, dict):
                 continue
-            optimizer._samples.append(
-                BurnSample(
-                    temp=optimizer._to_float(raw.get("temp")),
-                    flap=optimizer._to_int(raw.get("flap")),
-                    state=optimizer._to_int(raw.get("state")),
-                    com_error=optimizer._to_int(raw.get("com_error")),
-                )
+            sample = BurnSample(
+                temp=optimizer._to_float(raw.get("temp")),
+                flap=optimizer._to_int(raw.get("flap")),
+                state=optimizer._to_int(raw.get("state")),
+                com_error=optimizer._to_int(raw.get("com_error")),
             )
+            previous_active = (
+                bool(optimizer._samples) and optimizer._samples[-1].state in ACTIVE_STATES
+            )
+            # Older versions stored every poll; keep only burns and separators.
+            if sample.state in ACTIVE_STATES or previous_active:
+                optimizer._samples.append(sample)
 
         history = data.get("history")
         if isinstance(history, dict):

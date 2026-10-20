@@ -68,9 +68,12 @@ SAVE_ALLOWED_STATES: Final = frozenset(
 CLOSE_AIR_SHUTTER_ALLOWED_STATES: Final = frozenset({STATE_WAITING_FOR_ACTIVE})
 
 # Save process (the device asks the user to open and close the filling door).
-SAVE_PROCESS_TIMEOUT_SECONDS: Final = 30
-SAVE_PROCESS_POLL_SECONDS: Final = 1.0
+# The web UI allows 30 s; the controller itself showed no timeout, so allow time to
+# walk from the phone to the oven.
+SAVE_PROCESS_TIMEOUT_SECONDS: Final = 60
+SAVE_PROCESS_POLL_SECONDS: Final = 3.0  # same rhythm as the web UI
 SAVE_RELOAD_DELAY_SECONDS: Final = 6
+SAVE_DEVICE_STATE_INACTIVE: Final = 0
 SAVE_DEVICE_STATE_READY: Final = 10
 
 SAVE_STATUS_IDLE: Final = "idle"
