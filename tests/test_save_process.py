@@ -119,6 +119,7 @@ async def test_full_save_process(
 
     assert coordinator.save_status == "success"
     assert coordinator.pending_params == {}
+    assert coordinator.data["regP"] == 250
     assert device.params["regP"] == 250
     assert float(hass.states.get(_eid(hass, "number", "regP")).state) == 250
     assert events and events[0].data["status"] == "success"

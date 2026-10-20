@@ -341,7 +341,9 @@ class KaschuetzDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                         if value != target.get(key)
                     }
                     self.close_air_shutter = False
-                    self._last_menu_params = {}
+                    # Show the confirmed values right away; the refresh below re-reads them.
+                    self._last_menu_params = {"spr": spr, **target}
+                    self.data = {**(self.data or {}), **target}
                     self._finish_save(SAVE_STATUS_SUCCESS, target)
                     # The controller needs a moment before it reports the new values.
                     await asyncio.sleep(SAVE_RELOAD_DELAY_SECONDS)
