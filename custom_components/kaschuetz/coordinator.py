@@ -9,8 +9,9 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers.event import async_call_later
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
@@ -32,6 +33,7 @@ from .const import (
     SAVE_PROCESS_POLL_SECONDS,
     SAVE_PROCESS_TIMEOUT_SECONDS,
     SAVE_RELOAD_DELAY_SECONDS,
+    SAVE_RESULT_HOLD_SECONDS,
     SAVE_STATUS_CANCELLED,
     SAVE_STATUS_FAILED,
     SAVE_STATUS_IDLE,
@@ -132,6 +134,7 @@ class KaschuetzDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._save_task: asyncio.Task[None] | None = None
         self._suggestion_cache: tuple[Any, dict[str, Any]] | None = None
         self._persisted_count = optimizer.sample_count()
+        self._reset_status_unsub: CALLBACK_TYPE | None = None
 
     # ----------------------------------------------------------------- params
 
@@ -257,6 +260,9 @@ class KaschuetzDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if target == {key: menu[key] for key in BURN_PARAM_KEYS} and not self.close_air_shutter:
             raise HomeAssistantError("No pending parameter changes to save")
 
+        if self._reset_status_unsub is not None:
+            self._reset_status_unsub()
+            self._reset_status_unsub = None
         self._save_deadline = self.hass.loop.time() + SAVE_PROCESS_TIMEOUT_SECONDS
         self._set_save_status(SAVE_STATUS_STARTING)
         self._save_task = self.config_entry.async_create_background_task(
@@ -282,6 +288,9 @@ class KaschuetzDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def async_shutdown(self) -> None:
         """Cancel a running save process on unload."""
+        if self._reset_status_unsub is not None:
+            self._reset_status_unsub()
+            self._reset_status_unsub = None
         if self.save_in_progress and self._save_task is not None:
             self._save_task.cancel()
             await asyncio.gather(self._save_task, return_exceptions=True)
@@ -301,9 +310,25 @@ class KaschuetzDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         }
         self._save_deadline = None
         self._set_save_status(status, message)
+        self._schedule_status_reset()
         self.hass.bus.async_fire(
             EVENT_SAVE_RESULT,
             {"entry_id": self.config_entry.entry_id, **self.save_last_result},
+        )
+
+    def _schedule_status_reset(self) -> None:
+        """Return to idle a while after a finished save; last_result keeps the outcome."""
+        if self._reset_status_unsub is not None:
+            self._reset_status_unsub()
+
+        @callback
+        def _reset(_now: Any) -> None:
+            self._reset_status_unsub = None
+            if not self.save_in_progress:
+                self._set_save_status(SAVE_STATUS_IDLE)
+
+        self._reset_status_unsub = async_call_later(
+            self.hass, SAVE_RESULT_HOLD_SECONDS, _reset
         )
 
     async def _async_cancel_device_save(self) -> None:

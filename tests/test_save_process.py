@@ -2,11 +2,18 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
+
 import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
-from pytest_homeassistant_custom_component.common import MockConfigEntry, async_capture_events
+from homeassistant.util import dt as dt_util
+from pytest_homeassistant_custom_component.common import (
+    MockConfigEntry,
+    async_capture_events,
+    async_fire_time_changed,
+)
 
 from custom_components.kaschuetz.const import DOMAIN, EVENT_SAVE_RESULT, RUNTIME_COORDINATOR
 
@@ -304,3 +311,18 @@ async def test_save_button_available_again_after_save(
     await coordinator.async_start_save()
     await _wait_for_save(hass, coordinator)
     assert hass.states.get(button).state != "unavailable"
+
+
+async def test_status_returns_to_idle(
+    hass: HomeAssistant, entry: MockConfigEntry, device: FakeDevice
+) -> None:
+    """The finished status is shown for a while, then the sensor is idle again."""
+    coordinator = await _setup(hass, entry)
+    await _set_number(hass, "aTemp", 300)
+    await coordinator.async_start_save()
+    await _wait_for_save(hass, coordinator)
+    assert coordinator.save_status == "success"
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=121))
+    await hass.async_block_till_done()
+    assert coordinator.save_status == "idle"
+    assert coordinator.save_last_result["status"] == "success"
