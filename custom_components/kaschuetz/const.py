@@ -29,6 +29,7 @@ DEFAULT_A_TEMP: Final = 200
 DEFAULT_SCHW: Final = 300
 DEFAULT_REGW: Final = 600
 DEFAULT_REGP: Final = 200
+BURN_PARAM_KEYS: Final = ("aTemp", "schW", "regW", "regP")
 
 RUNTIME_COORDINATOR: Final = "coordinator"
 RUNTIME_OPTIMIZER: Final = "optimizer"

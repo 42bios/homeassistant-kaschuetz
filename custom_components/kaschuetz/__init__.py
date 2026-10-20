@@ -19,6 +19,7 @@ from homeassistant.helpers.storage import Store
 
 from .api import KaschuetzApiError, async_send_abbrand_params
 from .const import (
+    BURN_PARAM_KEYS,
     CONF_EXPERIMENTAL_AUTO_OPTIMIZE,
     CONF_HOST,
     CONF_SEASON_ENTITY,
@@ -110,27 +111,21 @@ def _safe_int(value: Any, fallback: int) -> int:
         return fallback
 
 
-def _suggestion_preview_text(entry: ConfigEntry, suggestion: dict[str, Any]) -> str:
-    current = {
-        "aTemp": _safe_int(entry.options.get("aTemp"), 200),
-        "schW": _safe_int(entry.options.get("schW"), 300),
-        "regW": _safe_int(entry.options.get("regW"), 600),
-        "regP": _safe_int(entry.options.get("regP"), 200),
-    }
-    proposed = {
-        "aTemp": _safe_int(suggestion.get("aTemp"), current["aTemp"]),
-        "schW": _safe_int(suggestion.get("schW"), current["schW"]),
-        "regW": _safe_int(suggestion.get("regW"), current["regW"]),
-        "regP": _safe_int(suggestion.get("regP"), current["regP"]),
-    }
-    delta = {key: proposed[key] - current[key] for key in current}
+def _suggestion_preview_text(
+    entry: ConfigEntry, suggestion: dict[str, Any], current: dict[str, int] | None
+) -> str:
+    proposed = {key: _safe_int(suggestion.get(key), 0) for key in BURN_PARAM_KEYS}
+    if current is None:
+        delta: dict[str, int] | str = "unknown (device did not report current parameters)"
+    else:
+        delta = {key: proposed[key] - current[key] for key in BURN_PARAM_KEYS}
 
     return (
         f"Entry: {entry.entry_id}\n"
         f"Preview only: no parameters will be written.\n"
         f"Samples: {suggestion.get('samples_used')}, Cycles: {suggestion.get('cycles_used')}\n"
         f"Confidence: {suggestion.get('confidence')}\n"
-        f"Current: {current}\n"
+        f"Current (device): {current if current is not None else 'unknown'}\n"
         f"Proposed: {proposed}\n"
         f"Delta: {delta}\n"
         f"Stats: {suggestion.get('stats')}\n"
@@ -141,6 +136,25 @@ def _suggestion_preview_text(entry: ConfigEntry, suggestion: dict[str, Any]) -> 
         f"Profile: {suggestion.get('optimizer_profile')}\n"
         f"Note: {suggestion.get('note', '-')}"
     )
+
+
+def _write_history_export(
+    path: Path, snapshot: dict[str, Any], export_format: str, include_arrays: bool
+) -> None:
+    """Write a burn history snapshot to disk (blocking, run in executor)."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if export_format == "csv":
+        temp_arr = snapshot.get("TempArr", []) if include_arrays else []
+        flap_arr = snapshot.get("KlappeArr", []) if include_arrays else []
+        step_s = int(snapshot.get("sample_step_s", 8))
+        with path.open("w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            writer.writerow(["index", "time_offset_s", "temp_c", "flap"])
+            for idx, temp in enumerate(temp_arr):
+                flap = flap_arr[idx] if idx < len(flap_arr) else None
+                writer.writerow([idx, idx * step_s, temp, flap])
+    else:
+        path.write_text(json.dumps(snapshot, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 def _can_apply(suggestion: dict[str, Any], min_confidence: str) -> bool:
@@ -157,18 +171,15 @@ def _experimental_auto_optimize_enabled(entry: ConfigEntry) -> bool:
 async def _apply_suggestion_to_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
+    coordinator: KaschuetzDataCoordinator,
     suggestion: dict[str, Any],
     write_to_device: bool,
 ) -> str:
-    applied = {
-        "aTemp": int(suggestion["aTemp"]),
-        "schW": int(suggestion["schW"]),
-        "regW": int(suggestion["regW"]),
-        "regP": int(suggestion["regP"]),
-    }
+    applied = {key: int(suggestion[key]) for key in BURN_PARAM_KEYS}
 
     if write_to_device:
         await async_send_abbrand_params(hass, entry.data[CONF_HOST], applied)
+        await coordinator.async_request_refresh()
 
     new_options = {**dict(entry.options), **applied}
     hass.config_entries.async_update_entry(entry, options=new_options)
@@ -183,8 +194,11 @@ async def _async_setup_services(hass: HomeAssistant) -> None:
             if not runtime:
                 continue
             optimizer: BurnOptimizer = runtime[RUNTIME_OPTIMIZER]
-            suggestion = optimizer.calculate(dict(entry.options))
-            messages.append(_suggestion_preview_text(entry, suggestion))
+            coordinator: KaschuetzDataCoordinator = runtime[RUNTIME_COORDINATOR]
+            suggestion = optimizer.calculate(coordinator.optimizer_input(dict(entry.options)))
+            messages.append(
+                _suggestion_preview_text(entry, suggestion, coordinator.device_burn_params())
+            )
         if not messages:
             messages.append("No matching Kaschuetz config entry found.")
         return messages
@@ -230,7 +244,18 @@ async def _async_setup_services(hass: HomeAssistant) -> None:
                 continue
 
             optimizer: BurnOptimizer = runtime[RUNTIME_OPTIMIZER]
-            suggestion = optimizer.calculate(dict(entry.options))
+            coordinator: KaschuetzDataCoordinator = runtime[RUNTIME_COORDINATOR]
+            if write_to_device:
+                current = await coordinator.async_current_burn_params()
+                if current is None:
+                    updates.append(
+                        f"Entry {entry.entry_id}: skipped (device did not report current "
+                        "burn parameters; refusing to write)"
+                    )
+                    continue
+                suggestion = optimizer.calculate({**dict(entry.options), **current})
+            else:
+                suggestion = optimizer.calculate(coordinator.optimizer_input(dict(entry.options)))
             if not _can_apply(suggestion, min_confidence):
                 updates.append(
                     f"Entry {entry.entry_id}: skipped (confidence={suggestion.get('confidence')} < {min_confidence})"
@@ -239,7 +264,9 @@ async def _async_setup_services(hass: HomeAssistant) -> None:
 
             try:
                 updates.append(
-                    await _apply_suggestion_to_entry(hass, entry, suggestion, write_to_device)
+                    await _apply_suggestion_to_entry(
+                        hass, entry, coordinator, suggestion, write_to_device
+                    )
                 )
             except KaschuetzApiError as err:
                 updates.append(f"Entry {entry.entry_id}: device write failed ({err})")
@@ -296,7 +323,6 @@ async def _async_setup_services(hass: HomeAssistant) -> None:
         max_points = int(call.data.get("max_points", 240))
         export_format = str(call.data.get("format", "json")).lower()
         export_dir = Path(hass.config.path("kaschuetz_exports"))
-        export_dir.mkdir(parents=True, exist_ok=True)
         lines: list[str] = []
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
@@ -307,19 +333,15 @@ async def _async_setup_services(hass: HomeAssistant) -> None:
             optimizer: BurnOptimizer = runtime[RUNTIME_OPTIMIZER]
             snapshot = optimizer.history_snapshot(max_points=max_points, include_arrays=include_arrays)
 
-            if export_format == "csv":
-                path = export_dir / f"{DOMAIN}_{entry.entry_id}_{timestamp}.csv"
-                temp_arr = snapshot.get("TempArr", []) if include_arrays else []
-                flap_arr = snapshot.get("KlappeArr", []) if include_arrays else []
-                with path.open("w", newline="", encoding="utf-8") as f:
-                    writer = csv.writer(f)
-                    writer.writerow(["index", "time_offset_s", "temp_c", "flap"])
-                    for idx, temp in enumerate(temp_arr):
-                        flap = flap_arr[idx] if idx < len(flap_arr) else None
-                        writer.writerow([idx, idx * int(snapshot.get("sample_step_s", 8)), temp, flap])
-            else:
-                path = export_dir / f"{DOMAIN}_{entry.entry_id}_{timestamp}.json"
-                path.write_text(json.dumps(snapshot, ensure_ascii=False, indent=2), encoding="utf-8")
+            suffix = "csv" if export_format == "csv" else "json"
+            path = export_dir / f"{DOMAIN}_{entry.entry_id}_{timestamp}.{suffix}"
+            try:
+                await hass.async_add_executor_job(
+                    _write_history_export, path, snapshot, export_format, include_arrays
+                )
+            except OSError as err:
+                lines.append(f"Entry {entry.entry_id}: export failed ({err})")
+                continue
 
             lines.append(f"Entry {entry.entry_id}: exported to {path}")
 

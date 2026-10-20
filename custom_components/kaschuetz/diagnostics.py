@@ -37,6 +37,7 @@ async def async_get_config_entry_diagnostics(
             "temp": data.get("Temp") if isinstance(data, dict) else None,
             "klappe": data.get("Klappe") if isinstance(data, dict) else None,
             "com_error": com_error,
+            "burn_params": coordinator.device_burn_params() if coordinator else None,
         },
         "coordinator": {
             "available": bool(coordinator),
@@ -49,6 +50,10 @@ async def async_get_config_entry_diagnostics(
         "optimizer": {
             "available": bool(optimizer),
             "sample_count": optimizer.sample_count() if optimizer else 0,
-            "latest_suggestion": optimizer.calculate(dict(entry.options)) if optimizer else None,
+            "latest_suggestion": (
+                optimizer.calculate(coordinator.optimizer_input(dict(entry.options)))
+                if optimizer and coordinator
+                else None
+            ),
         },
     }

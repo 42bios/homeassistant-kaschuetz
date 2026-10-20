@@ -11,7 +11,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
-from .api import KaschuetzApiError, async_fetch_main_data
+from .api import KaschuetzApiError, async_fetch_main_data, async_fetch_params
+from .const import BURN_PARAM_KEYS
 from .optimizer import BurnOptimizer
 
 _LOGGER = logging.getLogger(__name__)
@@ -130,6 +131,46 @@ class KaschuetzDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.consecutive_failures = 0
         self.last_success: datetime | None = None
         self.last_error: str | None = None
+
+    def device_burn_params(self) -> dict[str, int] | None:
+        """Return burn parameters as reported by the device, or None if incomplete."""
+        data = self.data or {}
+        params: dict[str, int] = {}
+        for key in BURN_PARAM_KEYS:
+            try:
+                params[key] = int(data[key])
+            except (KeyError, TypeError, ValueError):
+                return None
+        return params
+
+    async def async_current_burn_params(self) -> dict[str, int] | None:
+        """Return current device burn parameters, querying the device if not polled."""
+        params = self.device_burn_params()
+        if params is not None:
+            return params
+        try:
+            data = await async_fetch_params(self.hass, self.host)
+        except KaschuetzApiError as err:
+            _LOGGER.warning("Could not read burn parameters from device: %s", err)
+            return None
+        params = {}
+        for key in BURN_PARAM_KEYS:
+            try:
+                params[key] = int(data[key])
+            except (KeyError, TypeError, ValueError):
+                return None
+        return params
+
+    def optimizer_input(self, options: dict[str, Any]) -> dict[str, Any]:
+        """Return optimizer input with the device's current burn parameters as baseline."""
+        current = dict(options)
+        data = self.data or {}
+        for key in BURN_PARAM_KEYS:
+            try:
+                current[key] = int(data[key])
+            except (KeyError, TypeError, ValueError):
+                continue
+        return current
 
     @property
     def connection_quality(self) -> float:

@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
-from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorEntityDescription
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorEntity,
+    SensorEntityDescription,
+)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import PERCENTAGE, EntityCategory, UnitOfTemperature
 from homeassistant.core import HomeAssistant
@@ -233,10 +237,14 @@ class KaschuetzSensor(CoordinatorEntity[KaschuetzDataCoordinator], SensorEntity)
         if key == "optimizer_samples":
             return self.coordinator.optimizer.sample_count()
         if key == "optimizer_cycles":
-            suggestion = self.coordinator.optimizer.calculate(dict(self._entry.options))
+            suggestion = self.coordinator.optimizer.calculate(
+                self.coordinator.optimizer_input(dict(self._entry.options))
+            )
             return suggestion.get("cycles_used")
         if key == "optimizer_confidence":
-            suggestion = self.coordinator.optimizer.calculate(dict(self._entry.options))
+            suggestion = self.coordinator.optimizer.calculate(
+                self.coordinator.optimizer_input(dict(self._entry.options))
+            )
             return suggestion.get("confidence")
         if key == "device_a_temp":
             return data.get("aTemp")
@@ -268,7 +276,9 @@ class KaschuetzSensor(CoordinatorEntity[KaschuetzDataCoordinator], SensorEntity)
         """Expose additional diagnostics for optimization sensors."""
         key = self.entity_description.key
         if key in {"optimizer_cycles", "optimizer_confidence"}:
-            suggestion = self.coordinator.optimizer.calculate(dict(self._entry.options))
+            suggestion = self.coordinator.optimizer.calculate(
+                self.coordinator.optimizer_input(dict(self._entry.options))
+            )
             return {
                 "samples_used": suggestion.get("samples_used"),
                 "cycles_used": suggestion.get("cycles_used"),

@@ -2,29 +2,23 @@
 
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass
 
 from homeassistant.components.number import NumberEntity, NumberEntityDescription
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .api import KaschuetzApiError, async_send_abbrand_params
 from .const import (
     CONF_HOST,
-    DEFAULT_A_TEMP,
     DEFAULT_NAME,
-    DEFAULT_REGP,
-    DEFAULT_REGW,
-    DEFAULT_SCHW,
     DOMAIN,
     RUNTIME_COORDINATOR,
 )
 from .coordinator import KaschuetzDataCoordinator
-
-_LOGGER = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -32,7 +26,6 @@ class KaschuetzNumberDescription(NumberEntityDescription):
     """Metadata for a writable Kaschuetz number entity."""
 
     key: str
-    default_value: int
     native_min_value: int
     native_max_value: int
     native_step: int
@@ -42,7 +35,6 @@ NUMBER_DESCRIPTIONS: tuple[KaschuetzNumberDescription, ...] = (
     KaschuetzNumberDescription(
         key="aTemp",
         translation_key="a_temp",
-        default_value=DEFAULT_A_TEMP,
         native_min_value=120,
         native_max_value=320,
         native_step=1,
@@ -50,7 +42,6 @@ NUMBER_DESCRIPTIONS: tuple[KaschuetzNumberDescription, ...] = (
     KaschuetzNumberDescription(
         key="schW",
         translation_key="sch_w",
-        default_value=DEFAULT_SCHW,
         native_min_value=120,
         native_max_value=700,
         native_step=1,
@@ -58,7 +49,6 @@ NUMBER_DESCRIPTIONS: tuple[KaschuetzNumberDescription, ...] = (
     KaschuetzNumberDescription(
         key="regW",
         translation_key="reg_w",
-        default_value=DEFAULT_REGW,
         native_min_value=200,
         native_max_value=1200,
         native_step=1,
@@ -66,7 +56,6 @@ NUMBER_DESCRIPTIONS: tuple[KaschuetzNumberDescription, ...] = (
     KaschuetzNumberDescription(
         key="regP",
         translation_key="reg_p",
-        default_value=DEFAULT_REGP,
         native_min_value=120,
         native_max_value=600,
         native_step=1,
@@ -89,7 +78,7 @@ async def async_setup_entry(
 
 
 class KaschuetzNumberEntity(CoordinatorEntity[KaschuetzDataCoordinator], NumberEntity):
-    """Writable number entity mapped to burn parameter options."""
+    """Writable number entity mapped to a device burn parameter."""
 
     def __init__(
         self,
@@ -115,35 +104,27 @@ class KaschuetzNumberEntity(CoordinatorEntity[KaschuetzDataCoordinator], NumberE
         }
 
     @property
-    def native_value(self) -> float:
-        """Return number value from config entry options."""
+    def native_value(self) -> float | None:
+        """Return the burn parameter as currently reported by the device."""
+        value = (self.coordinator.data or {}).get(self.entity_description.key)
         try:
-            return float(
-                self._entry.options.get(
-                    self.entity_description.key, self.entity_description.default_value
-                )
-            )
+            return float(value)
         except (TypeError, ValueError):
-            return float(self.entity_description.default_value)
+            return None
 
     async def async_set_native_value(self, value: float) -> None:
-        """Set number, persist in options, and push to device."""
-        new_value = int(round(value))
-        options = dict(self._entry.options)
-        options[self.entity_description.key] = new_value
+        """Push the changed parameter to the device, keeping the others as reported."""
+        current = await self.coordinator.async_current_burn_params()
+        if current is None:
+            raise HomeAssistantError(
+                "Current burn parameters were not reported by the device; refusing to write"
+            )
 
-        applied = {
-            "aTemp": int(options.get("aTemp", DEFAULT_A_TEMP)),
-            "schW": int(options.get("schW", DEFAULT_SCHW)),
-            "regW": int(options.get("regW", DEFAULT_REGW)),
-            "regP": int(options.get("regP", DEFAULT_REGP)),
-        }
+        applied = {**current, self.entity_description.key: round(value)}
 
         try:
             await async_send_abbrand_params(self.hass, self._entry.data[CONF_HOST], applied)
         except KaschuetzApiError as err:
-            _LOGGER.error("Failed writing params from number entity: %s", err)
-            return
+            raise HomeAssistantError(f"Failed writing burn parameters: {err}") from err
 
-        self.hass.config_entries.async_update_entry(self._entry, options=options)
-        self.async_write_ha_state()
+        await self.coordinator.async_request_refresh()
