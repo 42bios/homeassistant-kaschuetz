@@ -8,6 +8,10 @@
 
 Home Assistant custom integration for Kaschuetz oven controllers with adaptive burn optimization.
 
+If you find this project useful, you can support its development and testing by buying me a coffee.
+
+<a href="https://buymeacoffee.com/42bios"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy me a coffee" width="217" height="60"></a>
+
 <img src="https://raw.githubusercontent.com/42bios/homeassistant-kaschuetz/main/.github/images/hacs_preview.png?v=20260401-2" width="160" alt="Kaschuetz HACS Preview">
 
 > **Disclaimer:** This is an unofficial, community-maintained integration and is not affiliated with, endorsed by, or supported by Kaschuetz. All product names, logos, and brands are property of their respective owners and are used for identification purposes only.
