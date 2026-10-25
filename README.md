@@ -14,14 +14,6 @@ Home Assistant custom integration for Kaschuetz oven controllers with adaptive b
 
 > **Disclaimer:** This is an unofficial, community-maintained integration and is not affiliated with, endorsed by, or supported by Kaschuetz. All product names, logos, and brands are property of their respective owners and are used for identification purposes only.
 
-<a href="https://www.buymeacoffee.com/42bios">
-  <img
-    src="https://cdn.buymeacoffee.com/buttons/v2/arial-yellow.png"
-    alt="Buy Me a Coffee"
-    width="180"
-  />
-</a>
-
 ## Highlights
 - UI config flow (`Settings -> Devices & Services`)
 - Local polling of status, burn history and parameters in one request, with connection quality metrics
@@ -178,9 +170,15 @@ The tests use a simulated controller (`tests/fake_device.py`) including the save
 
 ## Support
 
-If you find this project useful, you can [buy me a coffee](https://buymeacoffee.com/42bios) to support development and testing.
-
 - Issues: https://github.com/42bios/homeassistant-kaschuetz/issues
+
+<a href="https://www.buymeacoffee.com/42bios">
+  <img
+    src="https://cdn.buymeacoffee.com/buttons/v2/arial-yellow.png"
+    alt="Buy Me a Coffee"
+    width="140"
+  />
+</a>
 
 ## License
 MIT - see [LICENSE](LICENSE).
