@@ -16,15 +16,15 @@ from homeassistant.components.number import (
     NumberEntityDescription,
     NumberMode,
 )
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import PERCENTAGE, UnitOfTemperature, UnitOfTime
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
+from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import BURN_PARAM_LIMITS, BURN_PARAM_SCALE, DOMAIN, RUNTIME_COORDINATOR
+from .const import BURN_PARAM_LIMITS, BURN_PARAM_SCALE, DOMAIN
 from .coordinator import KaschuetzDataCoordinator
 from .entity import KaschuetzEntity
+from .models import KaschuetzConfigEntry
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -66,11 +66,11 @@ NUMBER_DESCRIPTIONS: tuple[KaschuetzNumberDescription, ...] = (
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: KaschuetzConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Kaschuetz number entities."""
-    coordinator: KaschuetzDataCoordinator = hass.data[DOMAIN][entry.entry_id][RUNTIME_COORDINATOR]
+    coordinator = entry.runtime_data.coordinator
     async_add_entities(
         KaschuetzNumberEntity(coordinator, description) for description in NUMBER_DESCRIPTIONS
     )
@@ -116,5 +116,7 @@ class KaschuetzNumberEntity(KaschuetzEntity, NumberEntity):
     async def async_set_native_value(self, value: float) -> None:
         """Stage the new value for the next save process."""
         if self.coordinator.save_in_progress:
-            raise HomeAssistantError("Cannot change parameters while a save is running")
+            raise ServiceValidationError(
+                translation_domain=DOMAIN, translation_key="save_in_progress"
+            )
         self.coordinator.stage_param(self.entity_description.param, value * self._scale)

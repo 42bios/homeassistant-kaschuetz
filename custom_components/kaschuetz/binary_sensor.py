@@ -7,14 +7,13 @@ from homeassistant.components.binary_sensor import (
     BinarySensorEntity,
     BinarySensorEntityDescription,
 )
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, RUNTIME_COORDINATOR, STATE_DOOR_OPEN, STATE_FAULT
-from .coordinator import KaschuetzDataCoordinator
+from .const import STATE_DOOR_OPEN, STATE_FAULT
 from .entity import KaschuetzEntity
+from .models import KaschuetzConfigEntry
 
 BINARY_SENSOR_DESCRIPTIONS: tuple[BinarySensorEntityDescription, ...] = (
     BinarySensorEntityDescription(
@@ -38,11 +37,11 @@ BINARY_SENSOR_DESCRIPTIONS: tuple[BinarySensorEntityDescription, ...] = (
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: KaschuetzConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Kaschuetz binary sensors."""
-    coordinator: KaschuetzDataCoordinator = hass.data[DOMAIN][entry.entry_id][RUNTIME_COORDINATOR]
+    coordinator = entry.runtime_data.coordinator
     async_add_entities(
         KaschuetzBinarySensor(coordinator, description)
         for description in BINARY_SENSOR_DESCRIPTIONS

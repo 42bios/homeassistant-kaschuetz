@@ -4,63 +4,56 @@ from __future__ import annotations
 
 from typing import Any
 
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.components.diagnostics import REDACTED, async_redact_data
 from homeassistant.core import HomeAssistant
 
-from .const import CONF_HOST, DOMAIN, RUNTIME_COORDINATOR, RUNTIME_OPTIMIZER
+from .const import CONF_HOST
+from .models import KaschuetzConfigEntry
 
-
-def _redact_host(host: str) -> str:
-    parts = host.split(".")
-    if len(parts) == 4:
-        return ".".join(parts[:3] + ["x"])
-    return "redacted"
+TO_REDACT = {CONF_HOST}
 
 
 async def async_get_config_entry_diagnostics(
-    hass: HomeAssistant, entry: ConfigEntry
+    hass: HomeAssistant, entry: KaschuetzConfigEntry
 ) -> dict[str, Any]:
     """Return diagnostics for a config entry."""
-    runtime = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
-    coordinator = runtime.get(RUNTIME_COORDINATOR)
-    optimizer = runtime.get(RUNTIME_OPTIMIZER)
-
-    data = coordinator.data if coordinator else {}
-    com_error = data.get("ComError") if isinstance(data, dict) else None
+    coordinator = entry.runtime_data.coordinator
+    optimizer = entry.runtime_data.optimizer
+    data = coordinator.data or {}
+    host = entry.data.get(CONF_HOST, "")
+    last_error = coordinator.last_error
+    if last_error and host:
+        last_error = last_error.replace(host, REDACTED)
 
     return {
         "entry_id": entry.entry_id,
-        "host": _redact_host(str(entry.data.get(CONF_HOST, ""))),
+        "data": async_redact_data(dict(entry.data), TO_REDACT),
         "options": dict(entry.options),
         "last_payload_excerpt": {
-            "state": data.get("state") if isinstance(data, dict) else None,
-            "temp": data.get("Temp") if isinstance(data, dict) else None,
-            "klappe": data.get("Klappe") if isinstance(data, dict) else None,
-            "com_error": com_error,
-            "error_state": data.get("errorState") if isinstance(data, dict) else None,
-            "time_s": data.get("Time_s") if isinstance(data, dict) else None,
-            "spr": data.get("spr") if isinstance(data, dict) else None,
-            "burn_params": coordinator.device_burn_params() if coordinator else None,
+            "state": data.get("state"),
+            "temp": data.get("Temp"),
+            "klappe": data.get("Klappe"),
+            "com_error": data.get("ComError"),
+            "error_state": data.get("errorState"),
+            "time_s": data.get("Time_s"),
+            "spr": data.get("spr"),
+            "burn_params": coordinator.device_burn_params(),
         },
         "coordinator": {
-            "available": bool(coordinator),
-            "connection_quality": getattr(coordinator, "connection_quality", None),
-            "consecutive_failures": getattr(coordinator, "consecutive_failures", None),
-            "successful_polls": getattr(coordinator, "successful_polls", None),
-            "failed_polls": getattr(coordinator, "failed_polls", None),
-            "last_error": getattr(coordinator, "last_error", None),
+            "connection_quality": coordinator.connection_quality,
+            "consecutive_failures": coordinator.consecutive_failures,
+            "successful_polls": coordinator.successful_polls,
+            "failed_polls": coordinator.failed_polls,
+            "last_error": last_error,
         },
         "save_process": {
-            "status": coordinator.save_status if coordinator else None,
-            "pending_params": dict(coordinator.pending_params) if coordinator else None,
-            "close_air_shutter": coordinator.close_air_shutter if coordinator else None,
-            "last_result": coordinator.save_last_result if coordinator else None,
+            "status": coordinator.save_status,
+            "pending_params": dict(coordinator.pending_params),
+            "close_air_shutter": coordinator.close_air_shutter,
+            "last_result": coordinator.save_last_result,
         },
         "optimizer": {
-            "available": bool(optimizer),
-            "sample_count": optimizer.sample_count() if optimizer else 0,
-            "latest_suggestion": (
-                coordinator.suggestion(dict(entry.options)) if coordinator else None
-            ),
+            "sample_count": optimizer.sample_count(),
+            "latest_suggestion": coordinator.suggestion(dict(entry.options)),
         },
     }

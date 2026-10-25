@@ -6,7 +6,7 @@ from datetime import timedelta
 
 import pytest
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import (
@@ -15,14 +15,15 @@ from pytest_homeassistant_custom_component.common import (
     async_fire_time_changed,
 )
 
-from custom_components.kaschuetz.const import DOMAIN, EVENT_SAVE_RESULT, RUNTIME_COORDINATOR
+from custom_components.kaschuetz.const import DOMAIN, EVENT_SAVE_RESULT
 
 from .fake_device import RQ_SAVE_PARAMS_PROCESS, RQ_SET_MENU_PARAMS, FakeDevice
 
 
 def _eid(hass: HomeAssistant, platform: str, key: str) -> str:
+    entry_id = hass.config_entries.async_entries(DOMAIN)[0].entry_id
     entity_id = er.async_get(hass).async_get_entity_id(
-        platform, DOMAIN, f"kaschuetz_{key}_192.0.2.10"
+        platform, DOMAIN, f"kaschuetz_{key}_{entry_id}"
     )
     assert entity_id, f"{platform} {key} not registered"
     return entity_id
@@ -32,7 +33,7 @@ async def _setup(hass: HomeAssistant, entry: MockConfigEntry):
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
-    return hass.data[DOMAIN][entry.entry_id][RUNTIME_COORDINATOR]
+    return entry.runtime_data.coordinator
 
 
 async def _set_number(hass: HomeAssistant, key: str, value: float) -> None:
@@ -139,8 +140,9 @@ async def test_save_refused_in_burn_state(
     device.state = 9
     coordinator = await _setup(hass, entry)
     await _set_number(hass, "aTemp", 300)
-    with pytest.raises(HomeAssistantError, match="only be saved"):
+    with pytest.raises(ServiceValidationError) as err:
         await coordinator.async_start_save()
+    assert err.value.translation_key == "save_not_allowed"
     assert not _set_requests(device)
 
 
@@ -149,8 +151,9 @@ async def test_save_refused_without_changes(
 ) -> None:
     """Nothing staged means nothing to save."""
     coordinator = await _setup(hass, entry)
-    with pytest.raises(HomeAssistantError, match="No pending"):
+    with pytest.raises(ServiceValidationError) as err:
         await coordinator.async_start_save()
+    assert err.value.translation_key == "no_pending_changes"
 
 
 async def test_save_refused_without_device_params(
@@ -161,8 +164,9 @@ async def test_save_refused_without_device_params(
     coordinator = await _setup(hass, entry)
     assert hass.states.get(_eid(hass, "number", "aTemp")).state == "unknown"
     await _set_number(hass, "aTemp", 300)
-    with pytest.raises(HomeAssistantError, match="not reported"):
+    with pytest.raises(HomeAssistantError) as err:
         await coordinator.async_start_save()
+    assert err.value.translation_key == "params_not_reported"
     assert not _set_requests(device)
 
 
@@ -254,6 +258,7 @@ async def test_apply_optimization_only_stages(
         data={"host": "192.0.2.10"},
         options={"experimental_auto_optimize": True},
         unique_id="192.0.2.10",
+        version=2,
     )
     coordinator = await _setup(hass, entry)
     await hass.services.async_call(DOMAIN, "apply_optimization", {}, blocking=True)

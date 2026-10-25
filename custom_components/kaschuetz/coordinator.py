@@ -10,7 +10,7 @@ from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
-from homeassistant.exceptions import HomeAssistantError
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers.event import async_call_later
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
@@ -25,6 +25,7 @@ from .api import (
 )
 from .const import (
     BURN_PARAM_KEYS,
+    DOMAIN,
     EVENT_SAVE_RESULT,
     SAVE_ALLOWED_STATES,
     SAVE_DEVICE_STATE_INACTIVE,
@@ -244,21 +245,26 @@ class KaschuetzDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         been opened and closed again at the oven.
         """
         if self.save_in_progress:
-            raise HomeAssistantError("A save process is already running")
+            raise ServiceValidationError(
+                translation_domain=DOMAIN, translation_key="save_in_progress"
+            )
         state = (self.data or {}).get("state")
         if state not in SAVE_ALLOWED_STATES:
-            raise HomeAssistantError(
-                "Parameters can only be saved in the states waiting for active, "
-                f"idle or burn finished (current state: {map_state_to_text(state) or state})"
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="save_not_allowed",
+                translation_placeholders={"state": str(map_state_to_text(state) or state)},
             )
         menu = await self.async_current_menu_params()
         if menu is None:
             raise HomeAssistantError(
-                "Current parameters were not reported by the device; refusing to write"
+                translation_domain=DOMAIN, translation_key="params_not_reported"
             )
         target = {**{key: menu[key] for key in BURN_PARAM_KEYS}, **self.pending_params}
         if target == {key: menu[key] for key in BURN_PARAM_KEYS} and not self.close_air_shutter:
-            raise HomeAssistantError("No pending parameter changes to save")
+            raise ServiceValidationError(
+                translation_domain=DOMAIN, translation_key="no_pending_changes"
+            )
 
         if self._reset_status_unsub is not None:
             self._reset_status_unsub()
@@ -284,7 +290,11 @@ class KaschuetzDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         try:
             await async_save_process(self.hass, self.host, False)
         except KaschuetzApiError as err:
-            raise HomeAssistantError(f"Could not cancel save process: {err}") from err
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="cancel_failed",
+                translation_placeholders={"error": str(err)},
+            ) from err
 
     async def async_shutdown(self) -> None:
         """Cancel a running save process on unload."""

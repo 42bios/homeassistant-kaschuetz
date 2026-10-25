@@ -20,9 +20,10 @@ class KaschuetzEntity(CoordinatorEntity[KaschuetzDataCoordinator]):
     ) -> None:
         super().__init__(coordinator)
         self.entity_description = description
-        self._attr_unique_id = f"kaschuetz_{description.key}_{coordinator.host}"
+        entry_id = coordinator.config_entry.entry_id
+        self._attr_unique_id = f"kaschuetz_{description.key}_{entry_id}"
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, coordinator.host)},
+            identifiers={(DOMAIN, entry_id)},
             name=DEFAULT_NAME,
             manufacturer="Kaschuetz",
             model="Euromatic oven controller",

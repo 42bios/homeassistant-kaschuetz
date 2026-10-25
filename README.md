@@ -43,7 +43,11 @@ Required:
 - `host` (IP or hostname of the oven controller)
 
 Optional:
-- `season_entity` (example: `sensor.season`)
+- `season_entity` (example: `sensor.season`; while it is `summer`, the oven is not polled)
+
+Both can be changed later without losing entities or history: `Settings -> Devices & Services -> Kaschuetz Oven Control -> ... -> Reconfigure`.
+
+Update interval and optimizer settings are in the integration options.
 
 ## Saving Burn Parameters
 The controller (Euromatic) only accepts new parameters through its save process, exactly like its own web interface:

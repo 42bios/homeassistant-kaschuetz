@@ -7,11 +7,29 @@
         "data": {
           "host": "Device IP address",
           "season_entity": "Season entity (optional)"
+        },
+        "data_description": {
+          "season_entity": "While it is \"summer\", the oven is not polled."
+        }
+      },
+      "reconfigure": {
+        "title": "Change Kaschuetz oven",
+        "description": "Change the IP address or season entity of the oven controller.",
+        "data": {
+          "host": "IP address of the oven",
+          "season_entity": "Season entity (optional)"
+        },
+        "data_description": {
+          "season_entity": "While it is \"summer\", the oven is not polled."
         }
       }
     },
     "error": {
       "cannot_connect": "Failed to connect. Please verify the IP."
+    },
+    "abort": {
+      "already_configured": "This oven controller is already configured.",
+      "reconfigure_successful": "The settings were changed."
     }
   },
   "options": {
@@ -351,6 +369,32 @@
           "description": "Optional config entry id to address only one Kaschuetz device."
         }
       }
+    }
+  },
+  "exceptions": {
+    "save_in_progress": {
+      "message": "A save process is already running."
+    },
+    "save_not_allowed": {
+      "message": "Parameters can only be saved in the states waiting for active, idle or burn finished (current: {state})."
+    },
+    "params_not_reported": {
+      "message": "The controller did not report its current parameters. Nothing is written."
+    },
+    "no_pending_changes": {
+      "message": "There are no changed parameters to save."
+    },
+    "cancel_failed": {
+      "message": "Could not end the save process on the oven: {error}"
+    },
+    "close_air_shutter_not_allowed": {
+      "message": "Closing the air shutter is only possible in the state waiting for active."
+    },
+    "entry_not_found": {
+      "message": "No Kaschuetz entry with the id {entry_id} found."
+    },
+    "entry_not_loaded": {
+      "message": "No loaded Kaschuetz entry found."
     }
   }
 }

@@ -7,11 +7,29 @@
         "data": {
           "host": "IP-Adresse des Ofens",
           "season_entity": "Season-Entity (optional)"
+        },
+        "data_description": {
+          "season_entity": "Steht sie auf „summer“, wird der Ofen nicht abgefragt."
+        }
+      },
+      "reconfigure": {
+        "title": "Kaschuetz Ofen ändern",
+        "description": "IP-Adresse oder Season-Entity der Ofensteuerung ändern.",
+        "data": {
+          "host": "IP-Adresse des Ofens",
+          "season_entity": "Season-Entity (optional)"
+        },
+        "data_description": {
+          "season_entity": "Steht sie auf „summer“, wird der Ofen nicht abgefragt."
         }
       }
     },
     "error": {
       "cannot_connect": "Verbindung fehlgeschlagen. Bitte IP prüfen."
+    },
+    "abort": {
+      "already_configured": "Diese Ofensteuerung ist bereits eingerichtet.",
+      "reconfigure_successful": "Die Einstellungen wurden geändert."
     }
   },
   "options": {
@@ -351,6 +369,32 @@
           "description": "Optionale Config-Entry-ID, um nur ein Kaschuetz-Gerät anzusprechen."
         }
       }
+    }
+  },
+  "exceptions": {
+    "save_in_progress": {
+      "message": "Es läuft bereits ein Speichervorgang."
+    },
+    "save_not_allowed": {
+      "message": "Speichern ist nur in den Zuständen „Warte auf Aktiv“, „Ruhezustand“ oder „Abbrand beendet“ möglich (aktuell: {state})."
+    },
+    "params_not_reported": {
+      "message": "Die Ofensteuerung hat ihre aktuellen Parameter nicht gemeldet. Es wird nichts geschrieben."
+    },
+    "no_pending_changes": {
+      "message": "Es gibt keine geänderten Parameter zum Speichern."
+    },
+    "cancel_failed": {
+      "message": "Der Speichervorgang konnte am Ofen nicht beendet werden: {error}"
+    },
+    "close_air_shutter_not_allowed": {
+      "message": "„Zuluft schließen“ ist nur im Zustand „Warte auf Aktiv“ möglich."
+    },
+    "entry_not_found": {
+      "message": "Kein Kaschuetz-Eintrag mit der ID {entry_id} gefunden."
+    },
+    "entry_not_loaded": {
+      "message": "Kein geladener Kaschuetz-Eintrag gefunden."
     }
   }
 }

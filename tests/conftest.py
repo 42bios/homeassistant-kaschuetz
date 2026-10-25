@@ -48,4 +48,5 @@ def entry() -> MockConfigEntry:
         title="Kaschuetz Oven",
         data={CONF_HOST: "192.0.2.10"},
         unique_id="192.0.2.10",
+        version=2,
     )

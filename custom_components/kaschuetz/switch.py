@@ -5,15 +5,14 @@ from __future__ import annotations
 from typing import Any
 
 from homeassistant.components.switch import SwitchEntity, SwitchEntityDescription
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
+from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import CLOSE_AIR_SHUTTER_ALLOWED_STATES, DOMAIN, RUNTIME_COORDINATOR
-from .coordinator import KaschuetzDataCoordinator
+from .const import CLOSE_AIR_SHUTTER_ALLOWED_STATES, DOMAIN
 from .entity import KaschuetzEntity
+from .models import KaschuetzConfigEntry
 
 CLOSE_AIR_SHUTTER = SwitchEntityDescription(
     key="close_air_shutter",
@@ -24,11 +23,11 @@ CLOSE_AIR_SHUTTER = SwitchEntityDescription(
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: KaschuetzConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Kaschuetz switches."""
-    coordinator: KaschuetzDataCoordinator = hass.data[DOMAIN][entry.entry_id][RUNTIME_COORDINATOR]
+    coordinator = entry.runtime_data.coordinator
     async_add_entities([KaschuetzCloseAirShutterSwitch(coordinator, CLOSE_AIR_SHUTTER)])
 
 
@@ -48,8 +47,8 @@ class KaschuetzCloseAirShutterSwitch(KaschuetzEntity, SwitchEntity):
         """Stage the flag."""
         state = (self.coordinator.data or {}).get("state")
         if state not in CLOSE_AIR_SHUTTER_ALLOWED_STATES:
-            raise HomeAssistantError(
-                "Closing the air shutter is only possible in the state waiting for active"
+            raise ServiceValidationError(
+                translation_domain=DOMAIN, translation_key="close_air_shutter_not_allowed"
             )
         self.coordinator.set_close_air_shutter(True)
 

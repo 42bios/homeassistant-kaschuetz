@@ -10,13 +10,12 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
     CONF_OPTIMIZER_MODE,
-    DOMAIN,
     OPTIMIZER_MODE_BALANCED,
     OPTIMIZER_MODES,
-    RUNTIME_COORDINATOR,
 )
 from .coordinator import KaschuetzDataCoordinator
 from .entity import KaschuetzEntity
+from .models import KaschuetzConfigEntry
 
 OPTIMIZER_MODE = SelectEntityDescription(
     key="optimizer_mode",
@@ -28,11 +27,11 @@ OPTIMIZER_MODE = SelectEntityDescription(
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: KaschuetzConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Kaschuetz select entities."""
-    coordinator: KaschuetzDataCoordinator = hass.data[DOMAIN][entry.entry_id][RUNTIME_COORDINATOR]
+    coordinator = entry.runtime_data.coordinator
     async_add_entities([KaschuetzOptimizerModeSelect(entry, coordinator)])
 
 

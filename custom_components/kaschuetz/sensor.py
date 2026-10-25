@@ -25,8 +25,6 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
     BURN_PARAM_SCALE,
-    DOMAIN,
-    RUNTIME_COORDINATOR,
     SAVE_STATUSES,
 )
 from .coordinator import (
@@ -39,6 +37,7 @@ from .coordinator import (
     map_state_to_text,
 )
 from .entity import KaschuetzEntity
+from .models import KaschuetzConfigEntry
 from .params import parse_param
 
 
@@ -302,11 +301,11 @@ OBSOLETE_SENSOR_KEYS = ("com_error_text", "spr_code")
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: KaschuetzConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Kaschuetz sensors from config entry."""
-    coordinator: KaschuetzDataCoordinator = hass.data[DOMAIN][entry.entry_id][RUNTIME_COORDINATOR]
+    coordinator = entry.runtime_data.coordinator
     async_add_entities(
         KaschuetzSensor(entry, coordinator, description) for description in SENSOR_DESCRIPTIONS
     )

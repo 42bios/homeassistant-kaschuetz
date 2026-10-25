@@ -14,13 +14,13 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .const import (
     CONF_EXPERIMENTAL_AUTO_OPTIMIZE,
     DOMAIN,
-    RUNTIME_COORDINATOR,
     SERVICE_CANCEL_SAVE_PROCESS,
     SERVICE_DISCARD_PENDING,
     SERVICE_START_SAVE_PROCESS,
 )
 from .coordinator import KaschuetzDataCoordinator
 from .entity import KaschuetzEntity
+from .models import KaschuetzConfigEntry
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -85,11 +85,11 @@ BUTTONS: tuple[KaschuetzButtonDescription, ...] = (
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: KaschuetzConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Kaschuetz button entities."""
-    coordinator: KaschuetzDataCoordinator = hass.data[DOMAIN][entry.entry_id][RUNTIME_COORDINATOR]
+    coordinator = entry.runtime_data.coordinator
     async_add_entities(
         KaschuetzActionButton(entry, coordinator, description) for description in BUTTONS
     )

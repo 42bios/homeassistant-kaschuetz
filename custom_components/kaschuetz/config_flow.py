@@ -1,7 +1,8 @@
 """Config flow for Kaschuetz Oven integration.
 
 Implements:
-- Main flow for IP + optional season_entity
+- User flow for the controller address and an optional season entity
+- Reconfigure flow to change both later (e.g. a new IP address)
 - Options flow for update interval and optimizer settings
 
 Burn parameters are not part of the options: the controller only accepts them
@@ -15,10 +16,14 @@ from typing import Any
 from urllib.parse import urlsplit
 
 import voluptuous as vol
-from homeassistant import config_entries
-from homeassistant.config_entries import ConfigEntry, ConfigFlow
-from homeassistant.core import HomeAssistant
-from homeassistant.data_entry_flow import FlowResult
+from homeassistant.config_entries import (
+    ConfigEntry,
+    ConfigFlow,
+    ConfigFlowResult,
+    OptionsFlow,
+)
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.selector import EntitySelector, EntitySelectorConfig
 
 from .api import KaschuetzApiError, async_post_json
 from .const import (
@@ -68,20 +73,30 @@ async def _test_connection(hass: HomeAssistant, host: str) -> bool:
         return False
 
 
-class KaschuetzOptionsFlowHandler(config_entries.OptionsFlow):
+def _connection_schema(defaults: dict[str, Any]) -> vol.Schema:
+    """Schema for the controller address and the optional season entity."""
+    season = defaults.get(CONF_SEASON_ENTITY)
+    return vol.Schema(
+        {
+            vol.Required(CONF_HOST, default=defaults.get(CONF_HOST, vol.UNDEFINED)): str,
+            vol.Optional(
+                CONF_SEASON_ENTITY,
+                description={"suggested_value": season} if season else None,
+            ): EntitySelector(EntitySelectorConfig(domain=["sensor", "select", "input_select"])),
+        }
+    )
+
+
+class KaschuetzOptionsFlowHandler(OptionsFlow):
     """Handle update interval and optimizer options."""
 
-    def __init__(self, config_entry: ConfigEntry) -> None:
-        """Store the config_entry for reference."""
-        self._config_entry = config_entry
-
-    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Ask for update interval and optimizer settings."""
         if user_input is not None:
             # Burn parameters of older versions are no longer kept in the options.
             return self.async_create_entry(title="", data=user_input)
 
-        current_options = dict(self._config_entry.options)
+        current_options = dict(self.config_entry.options)
         def_update_interval = current_options.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)
         def_optimizer_mode = current_options.get(
             CONF_OPTIMIZER_MODE, OPTIMIZER_MODE_BALANCED
@@ -118,37 +133,71 @@ class KaschuetzOptionsFlowHandler(config_entries.OptionsFlow):
 
         return self.async_show_form(step_id="init", data_schema=schema)
 
-class KaschuetzConfigFlow(ConfigFlow, domain=DOMAIN):
-    """Main Config Flow for Kaschuetz Oven Control."""
-    VERSION = 1
 
-    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        """Ask for the device IP and optional season_entity."""
-        errors = {}
+class KaschuetzConfigFlow(ConfigFlow, domain=DOMAIN):
+    """Main config flow for Kaschuetz Oven Control."""
+
+    VERSION = 2
+
+    async def async_step_user(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Ask for the controller address and an optional season entity."""
+        errors: dict[str, str] = {}
 
         if user_input is not None:
-            normalized_host = _normalize_host(user_input[CONF_HOST])
-            await self.async_set_unique_id(normalized_host)
+            host = _normalize_host(user_input[CONF_HOST])
+            await self.async_set_unique_id(host)
             self._abort_if_unique_id_configured()
 
-            valid = await _test_connection(self.hass, normalized_host)
-            if valid:
+            if await _test_connection(self.hass, host):
                 return self.async_create_entry(
                     title=DEFAULT_NAME,
                     data={
-                        CONF_HOST: normalized_host,
+                        CONF_HOST: host,
                         CONF_SEASON_ENTITY: user_input.get(CONF_SEASON_ENTITY),
                     },
                 )
             errors["base"] = "cannot_connect"
 
-        schema = vol.Schema({
-            vol.Required(CONF_HOST): str,
-            vol.Optional(CONF_SEASON_ENTITY): str,
-        })
-        return self.async_show_form(step_id="user", data_schema=schema, errors=errors)
+        return self.async_show_form(
+            step_id="user", data_schema=_connection_schema(user_input or {}), errors=errors
+        )
+
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Change the controller address or the season entity."""
+        entry = self._get_reconfigure_entry()
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            host = _normalize_host(user_input[CONF_HOST])
+            if host != entry.unique_id:
+                await self.async_set_unique_id(host)
+                self._abort_if_unique_id_configured()
+
+            if await _test_connection(self.hass, host):
+                # The entry's update listener reloads it with the new connection.
+                return self.async_update_and_abort(
+                    entry,
+                    reason="reconfigure_successful",
+                    unique_id=host,
+                    data_updates={
+                        CONF_HOST: host,
+                        CONF_SEASON_ENTITY: user_input.get(CONF_SEASON_ENTITY),
+                    },
+                )
+            errors["base"] = "cannot_connect"
+
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=_connection_schema(user_input or dict(entry.data)),
+            errors=errors,
+        )
 
     @staticmethod
+    @callback
     def async_get_options_flow(config_entry: ConfigEntry) -> KaschuetzOptionsFlowHandler:
         """Return the options flow."""
-        return KaschuetzOptionsFlowHandler(config_entry)
+        return KaschuetzOptionsFlowHandler()

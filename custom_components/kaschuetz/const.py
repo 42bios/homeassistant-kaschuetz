@@ -110,10 +110,6 @@ SAVE_DEVICE_STATE_TO_STATUS: Final = {
 
 EVENT_SAVE_RESULT: Final = "kaschuetz_save_result"
 
-RUNTIME_COORDINATOR: Final = "coordinator"
-RUNTIME_OPTIMIZER: Final = "optimizer"
-RUNTIME_SAVE_OPTIMIZER: Final = "save_optimizer"
-RUNTIME_ENTRY_DATA: Final = "entry_data"
 
 CONFIDENCE_LOW: Final = "low"
 CONFIDENCE_MEDIUM: Final = "medium"
