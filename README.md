@@ -4,7 +4,7 @@
 [![HACS](https://github.com/42bios/homeassistant-kaschuetz/actions/workflows/validate-hacs.yml/badge.svg)](https://github.com/42bios/homeassistant-kaschuetz/actions/workflows/validate-hacs.yml)
 [![Hassfest](https://github.com/42bios/homeassistant-kaschuetz/actions/workflows/hassfest.yml/badge.svg)](https://github.com/42bios/homeassistant-kaschuetz/actions/workflows/hassfest.yml)
 [![HACS Custom](https://img.shields.io/badge/HACS-Custom-blue.svg)](https://hacs.xyz/)
-[![Version](https://img.shields.io/github/v/release/42bios/homeassistant-kaschuetz)](https://github.com/42bios/homeassistant-kaschuetz/releases)
+[![Version](https://img.shields.io/github/v/release/42bios/homeassistant-kaschuetz?color=blue)](https://github.com/42bios/homeassistant-kaschuetz/releases)
 [![buy me a coffee – donate](https://img.shields.io/badge/buy%20me%20a%20coffee-donate-yellow?style=flat)](https://buymeacoffee.com/42bios)
 
 Home Assistant custom integration for Kaschuetz oven controllers with adaptive burn optimization.
