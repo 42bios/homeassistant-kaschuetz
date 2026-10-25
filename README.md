@@ -12,6 +12,8 @@ Home Assistant custom integration for Kaschuetz oven controllers with adaptive b
 
 [![Open in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=42bios&repository=homeassistant-kaschuetz&category=integration)
 
+> **Disclaimer:** This is an unofficial, community-maintained integration and is not affiliated with, endorsed by, or supported by Kaschuetz. All product names, logos, and brands are property of their respective owners and are used for identification purposes only.
+
 <a href="https://www.buymeacoffee.com/42bios">
   <img
     src="https://cdn.buymeacoffee.com/buttons/v2/arial-yellow.png"
@@ -19,8 +21,6 @@ Home Assistant custom integration for Kaschuetz oven controllers with adaptive b
     width="180"
   />
 </a>
-
-> **Disclaimer:** This is an unofficial, community-maintained integration and is not affiliated with, endorsed by, or supported by Kaschuetz. All product names, logos, and brands are property of their respective owners and are used for identification purposes only.
 
 ## Highlights
 - UI config flow (`Settings -> Devices & Services`)
