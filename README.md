@@ -174,7 +174,6 @@ The tests use a simulated controller (`tests/fake_device.py`) including the save
 If you find this project useful, you can [buy me a coffee](https://buymeacoffee.com/42bios) to support development and testing.
 
 - Issues: https://github.com/42bios/homeassistant-kaschuetz/issues
-- Releases: https://github.com/42bios/homeassistant-kaschuetz/releases
 
 ## License
 MIT - see [LICENSE](LICENSE).
