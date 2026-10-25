@@ -3,14 +3,11 @@
 [![CI](https://github.com/42bios/homeassistant-kaschuetz/actions/workflows/ci.yml/badge.svg)](https://github.com/42bios/homeassistant-kaschuetz/actions/workflows/ci.yml)
 [![HACS](https://github.com/42bios/homeassistant-kaschuetz/actions/workflows/validate-hacs.yml/badge.svg)](https://github.com/42bios/homeassistant-kaschuetz/actions/workflows/validate-hacs.yml)
 [![Hassfest](https://github.com/42bios/homeassistant-kaschuetz/actions/workflows/hassfest.yml/badge.svg)](https://github.com/42bios/homeassistant-kaschuetz/actions/workflows/hassfest.yml)
-[![HACS Custom](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://hacs.xyz/)
+[![HACS Custom](https://img.shields.io/badge/HACS-Custom-blue.svg)](https://hacs.xyz/)
 [![Version](https://img.shields.io/github/v/release/42bios/homeassistant-kaschuetz)](https://github.com/42bios/homeassistant-kaschuetz/releases)
+[![buy me a coffee – donate](https://img.shields.io/badge/buy%20me%20a%20coffee-donate-yellow?style=flat)](https://buymeacoffee.com/42bios)
 
 Home Assistant custom integration for Kaschuetz oven controllers with adaptive burn optimization.
-
-If you find this project useful, you can support its development and testing by buying me a coffee.
-
-[![buy me a coffee – donate](https://img.shields.io/badge/buy%20me%20a%20coffee-donate-yellow?style=flat-square)](https://buymeacoffee.com/42bios)
 
 <img src="https://raw.githubusercontent.com/42bios/homeassistant-kaschuetz/main/.github/images/hacs_preview.png?v=20260401-2" width="160" alt="Kaschuetz HACS Preview">
 
@@ -169,6 +166,9 @@ The tests use a simulated controller (`tests/fake_device.py`) including the save
 - Release notes are auto-generated and grouped via `.github/release.yml`.
 
 ## Support
+
+If you find this project useful, you can [buy me a coffee](https://buymeacoffee.com/42bios) to support development and testing.
+
 - Issues: https://github.com/42bios/homeassistant-kaschuetz/issues
 - Releases: https://github.com/42bios/homeassistant-kaschuetz/releases
 
