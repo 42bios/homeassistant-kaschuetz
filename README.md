@@ -10,7 +10,7 @@ Home Assistant custom integration for Kaschuetz oven controllers with adaptive b
 
 If you find this project useful, you can support its development and testing by buying me a coffee.
 
-<a href="https://buymeacoffee.com/42bios"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy me a coffee" width="217" height="60"></a>
+[![buy me a coffee – donate](https://img.shields.io/badge/buy%20me%20a%20coffee-donate-yellow?style=flat-square)](https://buymeacoffee.com/42bios)
 
 <img src="https://raw.githubusercontent.com/42bios/homeassistant-kaschuetz/main/.github/images/hacs_preview.png?v=20260401-2" width="160" alt="Kaschuetz HACS Preview">
 
