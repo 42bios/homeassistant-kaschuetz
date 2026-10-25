@@ -5,13 +5,20 @@
 [![Hassfest](https://github.com/42bios/homeassistant-kaschuetz/actions/workflows/hassfest.yml/badge.svg)](https://github.com/42bios/homeassistant-kaschuetz/actions/workflows/hassfest.yml)
 [![HACS Custom](https://img.shields.io/badge/HACS-Custom-blue.svg)](https://hacs.xyz/)
 [![Version](https://img.shields.io/github/v/release/42bios/homeassistant-kaschuetz?color=blue)](https://github.com/42bios/homeassistant-kaschuetz/releases)
-[![buy me a coffee – donate](https://img.shields.io/badge/buy%20me%20a%20coffee-donate-yellow?style=flat)](https://buymeacoffee.com/42bios)
 
 Home Assistant custom integration for Kaschuetz oven controllers with adaptive burn optimization.
 
 <img src="https://raw.githubusercontent.com/42bios/homeassistant-kaschuetz/main/.github/images/hacs_preview.png?v=20260401-2" width="160" alt="Kaschuetz HACS Preview">
 
 [![Open in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=42bios&repository=homeassistant-kaschuetz&category=integration)
+
+<a href="https://www.buymeacoffee.com/42bios">
+  <img
+    src="https://cdn.buymeacoffee.com/buttons/v2/arial-yellow.png"
+    alt="Buy Me a Coffee"
+    width="180"
+  />
+</a>
 
 > **Disclaimer:** This is an unofficial, community-maintained integration and is not affiliated with, endorsed by, or supported by Kaschuetz. All product names, logos, and brands are property of their respective owners and are used for identification purposes only.
 
