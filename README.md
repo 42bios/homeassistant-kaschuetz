@@ -11,6 +11,8 @@ Home Assistant custom integration for Kaschuetz oven controllers with adaptive b
 
 <img src="https://raw.githubusercontent.com/42bios/homeassistant-kaschuetz/main/.github/images/hacs_preview.png?v=20260401-2" width="160" alt="Kaschuetz HACS Preview">
 
+[![Open in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=42bios&repository=homeassistant-kaschuetz&category=integration)
+
 > **Disclaimer:** This is an unofficial, community-maintained integration and is not affiliated with, endorsed by, or supported by Kaschuetz. All product names, logos, and brands are property of their respective owners and are used for identification purposes only.
 
 ## Highlights
@@ -23,8 +25,6 @@ Home Assistant custom integration for Kaschuetz oven controllers with adaptive b
 - Multilingual UI texts (`de` and `en`) for entities, states, and services
 
 ## HACS Installation (Recommended)
-[![Open your Home Assistant instance and open this repository in HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=42bios&repository=homeassistant-kaschuetz&category=integration)
-
 1. Open HACS in Home Assistant.
 2. Go to `Integrations`.
 3. Open menu (three dots) -> `Custom repositories`.
