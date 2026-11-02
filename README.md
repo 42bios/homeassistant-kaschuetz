@@ -3,7 +3,7 @@
 [![CI](https://github.com/42bios/homeassistant-kaschuetz/actions/workflows/ci.yml/badge.svg)](https://github.com/42bios/homeassistant-kaschuetz/actions/workflows/ci.yml)
 [![HACS](https://github.com/42bios/homeassistant-kaschuetz/actions/workflows/validate-hacs.yml/badge.svg)](https://github.com/42bios/homeassistant-kaschuetz/actions/workflows/validate-hacs.yml)
 [![Hassfest](https://github.com/42bios/homeassistant-kaschuetz/actions/workflows/hassfest.yml/badge.svg)](https://github.com/42bios/homeassistant-kaschuetz/actions/workflows/hassfest.yml)
-[![HACS Custom](https://img.shields.io/badge/HACS-Custom-blue.svg)](https://hacs.xyz/)
+[![HACS Default](https://img.shields.io/badge/HACS-Default-41BDF5.svg)](https://hacs.xyz/)
 [![Version](https://img.shields.io/github/v/release/42bios/homeassistant-kaschuetz?color=blue)](https://github.com/42bios/homeassistant-kaschuetz/releases)
 
 Home Assistant custom integration for Kaschuetz oven controllers with adaptive burn optimization.
@@ -24,13 +24,13 @@ Home Assistant custom integration for Kaschuetz oven controllers with adaptive b
 - Multilingual UI texts (`de` and `en`) for entities, states, and services
 
 ## HACS Installation (Recommended)
-1. Open HACS in Home Assistant.
-2. Go to `Integrations`.
-3. Open menu (three dots) -> `Custom repositories`.
-4. Repository URL: `https://github.com/42bios/homeassistant-kaschuetz`
-5. Category: `Integration`
-6. Install `Kaschuetz Oven Control` and restart Home Assistant.
-7. Add integration in `Settings -> Devices & Services -> Add Integration`.
+Kaschuetz Oven Control is available in the HACS default repository.
+
+1. Open HACS in Home Assistant and search for `Kaschuetz Oven Control` (or use the `Open in HACS` button at the top).
+2. Download it and restart Home Assistant.
+3. Add integration in `Settings -> Devices & Services -> Add Integration`.
+
+If the integration does not show up in the search (e.g. an older HACS version), add `https://github.com/42bios/homeassistant-kaschuetz` as a custom repository of type `Integration` via the HACS menu (three dots) -> `Custom repositories`.
 
 ## Manual Installation
 1. Copy `custom_components/kaschuetz` into your Home Assistant config folder.
