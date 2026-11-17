@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from collections import deque
 from dataclasses import dataclass
 from statistics import mean, pstdev
@@ -23,8 +24,25 @@ from .params import parse_param, snap_param
 
 # "Searching maximum" and "burn control" are the states with an active fire.
 ACTIVE_STATES = BURN_STATES
-MIN_CYCLE_POINTS = 8
+MIN_CYCLE_POINTS = 3
+MIN_CYCLE_SECONDS = 210
 MIN_CYCLE_DELTA_TEMP = 20.0
+
+# Burn time needed for a suggestion and for the confidence levels. Samples
+# arrive in the poll interval, so their number alone says little.
+MIN_BURN_SECONDS = 15 * 60
+MEDIUM_CONFIDENCE_BURN_SECONDS = 30 * 60
+HIGH_CONFIDENCE_BURN_SECONDS = 75 * 60
+
+# Interval assumed for samples without a usable timestamp (data stored by
+# versions before timestamps were recorded, or a gap between two burns).
+DEFAULT_SAMPLE_INTERVAL_SECONDS = 30
+MAX_SAMPLE_GAP_SECONDS = 900
+
+# Unsteadiness is the scatter of the temperature around its mean within this
+# time span to either side; a wider span would count the burn curve itself.
+UNSTEADINESS_WINDOW_SECONDS = 60
+DEFAULT_REG_W = 450
 
 
 @dataclass(slots=True)
@@ -35,6 +53,10 @@ class BurnSample:
     flap: int | None
     state: int | None
     com_error: int | None
+    # The controller reports "errorState" only while it has a fault.
+    fault: bool = False
+    # Unix time of the poll; None for samples stored by older versions.
+    ts: float | None = None
 
 
 class BurnOptimizer:
@@ -49,8 +71,8 @@ class BurnOptimizer:
         self._last_history_time_s_processed: int | None = None
         self._latest_history_kpis: dict[str, Any] = {}
 
-    def add_sample(self, payload: dict[str, Any]) -> None:
-        """Add a sample from raw device payload.
+    def add_sample(self, payload: dict[str, Any], now: float | None = None) -> bool:
+        """Add a sample from raw device payload; return whether it was kept.
 
         Only burn samples are kept, plus one non-burn sample after each burn as
         cycle separator, so long idle periods do not push burns out of the buffer.
@@ -60,11 +82,19 @@ class BurnOptimizer:
             flap=self._to_int(payload.get("Klappe")),
             state=self._to_int(payload.get("state")),
             com_error=self._to_int(payload.get("ComError")),
+            fault=payload.get("errorState") is not None,
+            ts=round(time.time() if now is None else now, 1),
         )
-        previous_active = bool(self._samples) and self._samples[-1].state in ACTIVE_STATES
-        if sample.state in ACTIVE_STATES or previous_active:
+        kept = sample.state in ACTIVE_STATES or self.burn_active
+        if kept:
             self._samples.append(sample)
         self._update_history(payload)
+        return kept
+
+    @property
+    def burn_active(self) -> bool:
+        """Return whether the newest kept sample belongs to a running burn."""
+        return bool(self._samples) and self._samples[-1].state in ACTIVE_STATES
 
     def sample_count(self) -> int:
         """Return total number of collected samples."""
@@ -87,7 +117,8 @@ class BurnOptimizer:
         cycles = self._extract_cycles()
         history_kpis = self.latest_history_kpis()
 
-        if len(burn_samples) < 30:
+        burn_seconds = self._time_offsets(burn_samples)[-1] if burn_samples else 0.0
+        if burn_seconds < MIN_BURN_SECONDS:
             safety = self._assess_safety(
                 confidence="low",
                 error_ratio=0.0,
@@ -108,11 +139,13 @@ class BurnOptimizer:
 
         temps = [s.temp for s in burn_samples if s.temp is not None]
         flaps = [s.flap for s in burn_samples if s.flap is not None]
-        errors = [s for s in burn_samples if s.com_error not in (None, 0)]
+        # ComError is not an error flag (real controllers constantly report 3).
+        errors = [s for s in burn_samples if s.fault]
 
         avg_temp = mean(temps)
         peak_temp = max(temps)
         temp_spread = pstdev(temps) if len(temps) > 1 else 0.0
+        temp_unsteadiness = self._temp_unsteadiness()
         flap_closed_ratio = self._closed_ratio(flaps)
         error_ratio = len(errors) / len(burn_samples)
         mode = str(current_options.get("optimizer_mode", OPTIMIZER_MODE_BALANCED))
@@ -134,7 +167,11 @@ class BurnOptimizer:
         # Heuristic baseline: can later be replaced by trained model predictions.
         a_temp = round(avg_temp * temp_factor)
         sch_w = round(220 + (1.0 - flap_closed_ratio) * 320)
-        reg_w = round(450 + temp_spread * spread_factor)
+        if temp_unsteadiness is None:
+            # Polled too sparsely to judge: keep the value the device has.
+            reg_w = parse_param(current_options.get("regW")) or DEFAULT_REG_W
+        else:
+            reg_w = round(DEFAULT_REG_W + temp_unsteadiness * spread_factor)
         reg_p = round(160 + error_ratio * error_factor)
         adjustments: list[str] = []
 
@@ -181,9 +218,13 @@ class BurnOptimizer:
         stable_cycles = [cycle for cycle in cycles if cycle.get("peak_temp", 0) >= 120]
         cycle_quality = mean([cycle["stability"] for cycle in stable_cycles]) if stable_cycles else 0.0
 
-        if len(burn_samples) >= 150 and error_ratio < 0.1 and len(stable_cycles) >= 3:
+        if (
+            burn_seconds >= HIGH_CONFIDENCE_BURN_SECONDS
+            and error_ratio < 0.1
+            and len(stable_cycles) >= 3
+        ):
             confidence = "high"
-        elif len(burn_samples) >= 60 and len(stable_cycles) >= 1:
+        elif burn_seconds >= MEDIUM_CONFIDENCE_BURN_SECONDS and len(stable_cycles) >= 1:
             confidence = "medium"
         else:
             confidence = "low"
@@ -207,6 +248,9 @@ class BurnOptimizer:
                 "avg_temp": round(avg_temp, 1),
                 "peak_temp": round(peak_temp, 1),
                 "temp_spread": round(temp_spread, 1),
+                "temp_unsteadiness": (
+                    None if temp_unsteadiness is None else round(temp_unsteadiness, 1)
+                ),
                 "flap_closed_ratio": round(flap_closed_ratio, 3),
                 "error_ratio": round(error_ratio, 3),
             },
@@ -226,8 +270,6 @@ class BurnOptimizer:
         summary: list[dict[str, float]] = []
         for cycle in self._iter_active_cycles():
             temps = [s.temp for s in cycle if s.temp is not None]
-            if len(temps) < MIN_CYCLE_POINTS:
-                continue
             spread = pstdev(temps) if len(temps) > 1 else 0.0
             summary.append(
                 {
@@ -275,6 +317,7 @@ class BurnOptimizer:
             points = min(max_points, len(temps))
             temps_tail = temps[-points:]
             flaps_tail = flaps[-points:] if flaps else []
+            offsets = self._time_offsets(cycle[-points:])
             peak = max(temps_tail)
             peak_idx = temps_tail.index(peak)
             result.append(
@@ -283,9 +326,9 @@ class BurnOptimizer:
                     "points": points,
                     "TempArr": [round(v, 2) for v in temps_tail],
                     "KlappeArr": flaps_tail,
-                    "time_offset_s": [i * HISTORY_SAMPLE_STEP_SECONDS for i in range(points)],
+                    "time_offset_s": offsets,
                     "kpis": {
-                        "time_to_peak_s": round(peak_idx * HISTORY_SAMPLE_STEP_SECONDS, 1),
+                        "time_to_peak_s": offsets[peak_idx],
                         "peak_temp": round(peak, 1),
                         "flap_oscillation": round(pstdev(flaps_tail), 3)
                         if len(flaps_tail) > 1
@@ -313,13 +356,61 @@ class BurnOptimizer:
     def _append_cycle_if_valid(
         self, cycles: list[list[BurnSample]], cycle: list[BurnSample]
     ) -> None:
-        """Append cycle when it has enough points and thermal movement."""
+        """Append cycle when it is long enough and has thermal movement."""
         temps = [s.temp for s in cycle if s.temp is not None]
         if len(temps) < MIN_CYCLE_POINTS:
+            return
+        if self._time_offsets(cycle)[-1] < MIN_CYCLE_SECONDS:
             return
         if (max(temps) - min(temps)) < MIN_CYCLE_DELTA_TEMP:
             return
         cycles.append(cycle)
+
+    def _temp_unsteadiness(self) -> float | None:
+        """Return how far the temperature scatters around its short-term mean.
+
+        The spread over a whole burn mostly measures the rise and fall of the
+        burn curve. This compares each sample only with its neighbours in
+        time, so a smooth burn yields a value near zero. None without samples
+        that have a neighbour on both sides within the window.
+        """
+        residuals: list[float] = []
+        for cycle in self._iter_active_cycles():
+            temps = [s.temp for s in cycle if s.temp is not None]
+            offsets = self._time_offsets(cycle)
+            first = 0
+            last = 0
+            for idx, offset in enumerate(offsets):
+                while offset - offsets[first] > UNSTEADINESS_WINDOW_SECONDS:
+                    first += 1
+                while (
+                    last + 1 < len(offsets)
+                    and offsets[last + 1] - offset <= UNSTEADINESS_WINDOW_SECONDS
+                ):
+                    last += 1
+                if first < idx < last:
+                    residuals.append(abs(temps[idx] - mean(temps[first : last + 1])))
+        return mean(residuals) if residuals else None
+
+    @staticmethod
+    def _time_offsets(samples: list[BurnSample]) -> list[float]:
+        """Return the seconds from the first sample to each sample."""
+        offsets: list[float] = []
+        elapsed = 0.0
+        previous: BurnSample | None = None
+        for sample in samples:
+            if previous is not None:
+                step = (
+                    sample.ts - previous.ts
+                    if sample.ts is not None and previous.ts is not None
+                    else None
+                )
+                if step is None or not 0 < step <= MAX_SAMPLE_GAP_SECONDS:
+                    step = DEFAULT_SAMPLE_INTERVAL_SECONDS
+                elapsed += step
+            offsets.append(round(elapsed, 1))
+            previous = sample
+        return offsets
 
     def _update_history(self, payload: dict[str, Any]) -> None:
         """Update TempArr/KlappeArr based history cache when provided."""
@@ -449,6 +540,8 @@ class BurnOptimizer:
                     "flap": sample.flap,
                     "state": sample.state,
                     "com_error": sample.com_error,
+                    "fault": sample.fault,
+                    "ts": sample.ts,
                 }
                 for sample in self._samples
             ],
@@ -480,6 +573,8 @@ class BurnOptimizer:
                 flap=optimizer._to_int(raw.get("flap")),
                 state=optimizer._to_int(raw.get("state")),
                 com_error=optimizer._to_int(raw.get("com_error")),
+                fault=bool(raw.get("fault", False)),
+                ts=optimizer._to_float(raw.get("ts")),
             )
             previous_active = (
                 bool(optimizer._samples) and optimizer._samples[-1].state in ACTIVE_STATES
