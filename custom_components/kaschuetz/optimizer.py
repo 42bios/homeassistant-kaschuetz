@@ -39,6 +39,11 @@ HIGH_CONFIDENCE_BURN_SECONDS = 75 * 60
 DEFAULT_SAMPLE_INTERVAL_SECONDS = 30
 MAX_SAMPLE_GAP_SECONDS = 900
 
+# Unsteadiness is the scatter of the temperature around its mean within this
+# time span to either side; a wider span would count the burn curve itself.
+UNSTEADINESS_WINDOW_SECONDS = 60
+DEFAULT_REG_W = 450
+
 
 @dataclass(slots=True)
 class BurnSample:
@@ -140,6 +145,7 @@ class BurnOptimizer:
         avg_temp = mean(temps)
         peak_temp = max(temps)
         temp_spread = pstdev(temps) if len(temps) > 1 else 0.0
+        temp_unsteadiness = self._temp_unsteadiness()
         flap_closed_ratio = self._closed_ratio(flaps)
         error_ratio = len(errors) / len(burn_samples)
         mode = str(current_options.get("optimizer_mode", OPTIMIZER_MODE_BALANCED))
@@ -161,7 +167,11 @@ class BurnOptimizer:
         # Heuristic baseline: can later be replaced by trained model predictions.
         a_temp = round(avg_temp * temp_factor)
         sch_w = round(220 + (1.0 - flap_closed_ratio) * 320)
-        reg_w = round(450 + temp_spread * spread_factor)
+        if temp_unsteadiness is None:
+            # Polled too sparsely to judge: keep the value the device has.
+            reg_w = parse_param(current_options.get("regW")) or DEFAULT_REG_W
+        else:
+            reg_w = round(DEFAULT_REG_W + temp_unsteadiness * spread_factor)
         reg_p = round(160 + error_ratio * error_factor)
         adjustments: list[str] = []
 
@@ -238,6 +248,9 @@ class BurnOptimizer:
                 "avg_temp": round(avg_temp, 1),
                 "peak_temp": round(peak_temp, 1),
                 "temp_spread": round(temp_spread, 1),
+                "temp_unsteadiness": (
+                    None if temp_unsteadiness is None else round(temp_unsteadiness, 1)
+                ),
                 "flap_closed_ratio": round(flap_closed_ratio, 3),
                 "error_ratio": round(error_ratio, 3),
             },
@@ -352,6 +365,32 @@ class BurnOptimizer:
         if (max(temps) - min(temps)) < MIN_CYCLE_DELTA_TEMP:
             return
         cycles.append(cycle)
+
+    def _temp_unsteadiness(self) -> float | None:
+        """Return how far the temperature scatters around its short-term mean.
+
+        The spread over a whole burn mostly measures the rise and fall of the
+        burn curve. This compares each sample only with its neighbours in
+        time, so a smooth burn yields a value near zero. None without samples
+        that have a neighbour on both sides within the window.
+        """
+        residuals: list[float] = []
+        for cycle in self._iter_active_cycles():
+            temps = [s.temp for s in cycle if s.temp is not None]
+            offsets = self._time_offsets(cycle)
+            first = 0
+            last = 0
+            for idx, offset in enumerate(offsets):
+                while offset - offsets[first] > UNSTEADINESS_WINDOW_SECONDS:
+                    first += 1
+                while (
+                    last + 1 < len(offsets)
+                    and offsets[last + 1] - offset <= UNSTEADINESS_WINDOW_SECONDS
+                ):
+                    last += 1
+                if first < idx < last:
+                    residuals.append(abs(temps[idx] - mean(temps[first : last + 1])))
+        return mean(residuals) if residuals else None
 
     @staticmethod
     def _time_offsets(samples: list[BurnSample]) -> list[float]:

@@ -165,3 +165,40 @@ def test_samples_without_timestamp_assume_the_default_interval() -> None:
         del sample["ts"]
     series = BurnOptimizer.from_dict(stored).history_snapshot()["recent_cycle_series"][0]
     assert series["time_offset_s"][:3] == [0, 30, 60]
+
+
+def test_smooth_burn_keeps_the_control_value_baseline() -> None:
+    """The rise and fall of a normal burn is not unsteadiness."""
+    optimizer = BurnOptimizer()
+    now = 1_000_000.0
+    for _ in range(4):
+        now = _burn(optimizer, now, points=60, step=30) + 3600
+    suggestion = optimizer.calculate(CURRENT)
+    assert suggestion["stats"]["temp_unsteadiness"] < 1
+    assert suggestion["regW"] == 450
+
+
+def test_unsteady_burn_raises_the_control_value_without_saturating() -> None:
+    optimizer = BurnOptimizer()
+    now = 1_000_000.0
+    for _ in range(4):
+        for i in range(60):
+            temp = 100 + 250 * math.sin(math.pi * i / 59) + (15 if i % 2 else -15)
+            optimizer.add_sample({"state": 9, "Temp": temp, "Klappe": 3}, now=now + i * 30)
+        now += 60 * 30
+        optimizer.add_sample({"state": 10, "Temp": 80, "Klappe": 7}, now=now)
+        now += 3600
+    suggestion = optimizer.calculate(CURRENT)
+    assert suggestion["stats"]["temp_unsteadiness"] > 5
+    assert 450 < suggestion["regW"] < 1000
+
+
+def test_sparse_polling_leaves_the_control_value_unchanged() -> None:
+    """With samples minutes apart, unsteadiness cannot be told from the burn curve."""
+    optimizer = BurnOptimizer()
+    now = 1_000_000.0
+    for _ in range(3):
+        now = _burn(optimizer, now, points=10, step=300) + 3600
+    suggestion = optimizer.calculate(CURRENT)
+    assert suggestion["stats"]["temp_unsteadiness"] is None
+    assert suggestion["regW"] == CURRENT["regW"]
