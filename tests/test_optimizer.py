@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import math
+
 from custom_components.kaschuetz.const import BURN_PARAM_LIMITS
 from custom_components.kaschuetz.optimizer import BurnOptimizer
 from custom_components.kaschuetz.params import parse_burn_params, parse_param, snap_param
+
+CURRENT = {"aTemp": 350, "schW": 375, "regW": 500, "regP": 150}
 
 
 def test_snap_param_uses_device_grid() -> None:
@@ -91,3 +95,73 @@ def test_idle_samples_do_not_fill_the_buffer() -> None:
     assert optimizer.sample_count() == 11
     restored = BurnOptimizer.from_dict(optimizer.to_dict())
     assert restored.sample_count() == 11
+
+
+def _burn(optimizer: BurnOptimizer, start: float, points: int, step: float, **extra) -> float:
+    """Feed one burn (rise to 350 degC and back) plus its separator; return the end time."""
+    for i in range(points):
+        temp = 100 + 250 * math.sin(math.pi * i / (points - 1))
+        optimizer.add_sample(
+            {"state": 9, "Temp": temp, "Klappe": 3, "ComError": 3, **extra}, now=start + i * step
+        )
+    end = start + points * step
+    optimizer.add_sample({"state": 10, "Temp": 80, "Klappe": 7, "ComError": 3}, now=end)
+    return end
+
+
+def test_normal_com_error_is_not_an_error() -> None:
+    """ComError is constantly 3 on real devices; it must not make suggestions unsafe."""
+    optimizer = BurnOptimizer()
+    now = 1_000_000.0
+    for _ in range(4):
+        now = _burn(optimizer, now, points=60, step=30) + 3600
+    suggestion = optimizer.calculate(CURRENT)
+    assert suggestion["stats"]["error_ratio"] == 0
+    assert suggestion["safety"]["level"] != "unsafe"
+    assert suggestion["confidence"] == "high"
+    assert suggestion["regP"] == 150
+
+
+def test_reported_error_state_counts_as_error() -> None:
+    optimizer = BurnOptimizer()
+    _burn(optimizer, 1_000_000.0, points=60, step=30, errorState=35)
+    suggestion = optimizer.calculate(CURRENT)
+    assert suggestion["stats"]["error_ratio"] == 1
+    assert suggestion["safety"] == {"level": "unsafe", "reasons": ["high_error_ratio"]}
+
+
+def test_cycle_time_axis_follows_the_poll_interval() -> None:
+    """Samples arrive in the poll interval, which is not always 30 s."""
+    optimizer = BurnOptimizer()
+    _burn(optimizer, 1_000_000.0, points=21, step=120)
+    restored = BurnOptimizer.from_dict(optimizer.to_dict())
+    for candidate in (optimizer, restored):
+        series = candidate.history_snapshot()["recent_cycle_series"][0]
+        assert series["time_offset_s"][:3] == [0, 120, 240]
+        assert series["kpis"]["time_to_peak_s"] == 1200
+
+
+def test_confidence_depends_on_burn_time_not_on_sample_count() -> None:
+    # 5 s polling: 100 samples are only eight minutes of fire.
+    fast = BurnOptimizer()
+    _burn(fast, 1_000_000.0, points=100, step=5)
+    assert fast.calculate(CURRENT)["confidence"] == "low"
+    assert "note" in fast.calculate(CURRENT)
+
+    # 300 s polling: three burns of 50 minutes are plenty, although only 30 samples.
+    slow = BurnOptimizer()
+    now = 1_000_000.0
+    for _ in range(3):
+        now = _burn(slow, now, points=10, step=300) + 3600
+    assert slow.calculate(CURRENT)["confidence"] == "high"
+
+
+def test_samples_without_timestamp_assume_the_default_interval() -> None:
+    """Data stored by older versions has no timestamps."""
+    optimizer = BurnOptimizer()
+    _burn(optimizer, 1_000_000.0, points=21, step=120)
+    stored = optimizer.to_dict()
+    for sample in stored["samples"]:
+        del sample["ts"]
+    series = BurnOptimizer.from_dict(stored).history_snapshot()["recent_cycle_series"][0]
+    assert series["time_offset_s"][:3] == [0, 30, 60]

@@ -73,6 +73,9 @@ LANGUAGE_LABELS: dict[int, str] = {0: "de", 1: "en", 2: "cs", 3: "it", 4: "sk"}
 
 PARAM_KEYS_WITH_LANGUAGE = ("spr", *BURN_PARAM_KEYS)
 
+# Learned burn samples are written to storage after this many new samples.
+PERSIST_EVERY_SAMPLES = 25
+
 
 def map_state_to_text(state: Any) -> str | None:
     """Map device state code to a translation key."""
@@ -134,7 +137,7 @@ class KaschuetzDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._save_deadline: float | None = None
         self._save_task: asyncio.Task[None] | None = None
         self._suggestion_cache: tuple[Any, dict[str, Any]] | None = None
-        self._persisted_count = optimizer.sample_count()
+        self._unsaved_samples = 0
         self._reset_status_unsub: CALLBACK_TYPE | None = None
 
     # ----------------------------------------------------------------- params
@@ -448,7 +451,10 @@ class KaschuetzDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.consecutive_failures = 0
         self.last_success = dt_util.utcnow()
         self.last_error = None
-        self.optimizer.add_sample(data)
+        burn_was_active = self.optimizer.burn_active
+        if self.optimizer.add_sample(data):
+            self._unsaved_samples += 1
+        burn_finished = burn_was_active and not self.optimizer.burn_active
 
         # Drop staged values the device already has.
         current = parse_burn_params(data) or {}
@@ -456,8 +462,11 @@ class KaschuetzDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             key: value for key, value in self.pending_params.items() if current.get(key) != value
         }
 
-        count = self.optimizer.sample_count()
-        if self._persist_callback and count != self._persisted_count and count % 25 == 0:
-            self._persisted_count = count
+        # Count kept samples instead of the buffer length (which stops growing
+        # once the buffer is full) and save at the end of every burn.
+        if self._persist_callback and (
+            burn_finished or self._unsaved_samples >= PERSIST_EVERY_SAMPLES
+        ):
+            self._unsaved_samples = 0
             await self._persist_callback()
         return data
